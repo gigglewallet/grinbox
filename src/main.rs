@@ -20,7 +20,7 @@ extern crate nom;
 extern crate uuid;
 extern crate ws;
 
-extern crate grinboxlib;
+extern crate grinrelaylib;
 
 mod broker;
 mod server;

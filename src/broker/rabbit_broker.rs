@@ -10,7 +10,7 @@ use futures::{
     Future
 };
 
-use grinboxlib::error::Result;
+use grinrelaylib::error::Result;
 
 use crate::broker::{BrokerRequest, BrokerResponse};
 use crate::broker::stomp::session::SessionEvent;
