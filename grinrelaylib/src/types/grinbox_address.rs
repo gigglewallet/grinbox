@@ -9,7 +9,7 @@ use parking_lot::RwLock;
 pub const GRINRELAY_ADDRESS_REGEX: &str = r"^(grinrelay://)?(?P<public_key>[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{52})(@(?P<domain>[a-zA-Z0-9\.]+)(:(?P<port>[0-9]*))?)?$";
 pub const GRINRELAY_ADDRESS_VERSION_MAINNET: [u8; 2] = [1, 11];
 pub const GRINRELAY_ADDRESS_VERSION_TESTNET: [u8; 2] = [1, 120];
-pub const DEFAULT_GRINRELAY_DOMAIN: &str = "grinrelay.io";
+pub const DEFAULT_GRINRELAY_DOMAIN: &str = "relay.grin.icu";
 pub const DEFAULT_GRINRELAY_PORT: u16 = 443;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

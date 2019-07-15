@@ -16,41 +16,6 @@ pub struct GrinboxMessage {
 }
 
 impl GrinboxMessage {
-    pub fn new(
-        message: String,
-        destination: &GrinboxAddress,
-        receiver_public_key: &PublicKey,
-        secret_key: &SecretKey,
-    ) -> Result<GrinboxMessage> {
-        let secp = Secp256k1::new();
-        let mut common_secret = receiver_public_key.clone();
-        common_secret
-            .mul_assign(&secp, secret_key)
-            .map_err(|_| ErrorKind::Encryption)?;
-        let common_secret_ser = common_secret.serialize_vec(&secp, true);
-        let common_secret_slice = &common_secret_ser[1..33];
-
-        let salt: [u8; 8] = thread_rng().gen();
-        let nonce: [u8; 12] = thread_rng().gen();
-        let mut key = [0; 32];
-        pbkdf2::derive(&digest::SHA512, 100, &salt, common_secret_slice, &mut key);
-        let mut enc_bytes = message.as_bytes().to_vec();
-        let suffix_len = aead::CHACHA20_POLY1305.tag_len();
-        for _ in 0..suffix_len {
-            enc_bytes.push(0);
-        }
-        let sealing_key = aead::SealingKey::new(&aead::CHACHA20_POLY1305, &key)
-            .map_err(|_| ErrorKind::Encryption)?;
-        aead::seal_in_place(&sealing_key, &nonce, &[], &mut enc_bytes, suffix_len)
-            .map_err(|_| ErrorKind::Encryption)?;
-
-        Ok(GrinboxMessage {
-            destination: Some(destination.clone()),
-            encrypted_message: to_hex(enc_bytes),
-            salt: to_hex(salt.to_vec()),
-            nonce: to_hex(nonce.to_vec()),
-        })
-    }
 
     pub fn key(&self, sender_public_key: &PublicKey, secret_key: &SecretKey) -> Result<[u8; 32]> {
         let salt = from_hex(self.salt.clone()).map_err(|_| ErrorKind::Decryption)?;
