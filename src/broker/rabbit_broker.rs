@@ -24,7 +24,7 @@ type Session = crate::broker::stomp::session::Session<TcpStream>;
 
 const DEFAULT_QUEUE_EXPIRATION: &str = "86400000";
 const DEFAULT_MESSAGE_EXPIRATION: u32 = 86400;
-const REPLY_TO_HEADER_NAME: &str = "grinbox-reply-to";
+const REPLY_TO_HEADER_NAME: &str = "grinrelay-reply-to";
 
 pub struct Broker {
     address: SocketAddr,

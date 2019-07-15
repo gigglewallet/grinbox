@@ -44,12 +44,12 @@ fn main() {
     let username = std::env::var("BROKER_USERNAME").unwrap_or("guest".to_string());
     let password = std::env::var("BROKER_PASSWORD").unwrap_or("guest".to_string());
 
-    let grinbox_domain = std::env::var("GRINBOX_DOMAIN").unwrap_or("127.0.0.1".to_string());
-    let grinbox_port = std::env::var("GRINBOX_PORT").unwrap_or("13420".to_string());
-    let grinbox_port = u16::from_str_radix(&grinbox_port, 10).expect("invalid GRINBOX_PORT given!");
-    let grinbox_protocol_unsecure = std::env::var("GRINBOX_PROTOCOL_UNSECURE").map(|_| true).unwrap_or(false);
+    let grinrelay_domain = std::env::var("GRINRELAY_DOMAIN").unwrap_or("127.0.0.1".to_string());
+    let grinrelay_port = std::env::var("GRINRELAY_PORT").unwrap_or("13420".to_string());
+    let grinrelay_port = u16::from_str_radix(&grinrelay_port, 10).expect("invalid GRINRELAY_PORT given!");
+    let grinrelay_protocol_unsecure = std::env::var("GRINRELAY_PROTOCOL_UNSECURE").map(|_| true).unwrap_or(false);
 
-    let is_mainnet = std::env::var("GRINBOX_IS_MAINNET").map(|_| true).unwrap_or(false);
+    let is_mainnet = std::env::var("GRINRELAY_IS_MAINNET").map(|_| true).unwrap_or(false);
     if is_mainnet {
         set_running_mode(ChainTypes::Mainnet);
     } else {
@@ -74,7 +74,7 @@ fn main() {
     let response_handlers_sender = AsyncServer::init();
 
     ws::Builder::new()
-        .build(|out| AsyncServer::new(out, sender.clone(), response_handlers_sender.clone(), &grinbox_domain, grinbox_port, grinbox_protocol_unsecure))
+        .build(|out| AsyncServer::new(out, sender.clone(), response_handlers_sender.clone(), &grinrelay_domain, grinrelay_port, grinrelay_protocol_unsecure))
         .unwrap()
         .listen(&bind_address[..])
         .unwrap();

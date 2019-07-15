@@ -29,9 +29,9 @@ pub struct AsyncServer {
     nats_sender: UnboundedSender<BrokerRequest>,
     response_handlers_sender: UnboundedSender<BrokerResponseHandler>,
     subscriptions: HashMap<String, Subscription>,
-    grinbox_domain: String,
-    grinbox_port: u16,
-    grinbox_protocol_unsecure: bool,
+    grinrelay_domain: String,
+    grinrelay_port: u16,
+    grinrelay_protocol_unsecure: bool,
 }
 
 pub struct Server {
@@ -69,9 +69,9 @@ impl AsyncServer {
         out: Sender,
         nats_sender: UnboundedSender<BrokerRequest>,
         response_handlers_sender: UnboundedSender<BrokerResponseHandler>,
-        grinbox_domain: &str,
-        grinbox_port: u16,
-        grinbox_protocol_unsecure: bool,
+        grinrelay_domain: &str,
+        grinrelay_port: u16,
+        grinrelay_protocol_unsecure: bool,
     ) -> AsyncServer {
         let id = Uuid::new_v4().to_string();
 
@@ -86,9 +86,9 @@ impl AsyncServer {
             nats_sender,
             response_handlers_sender,
             subscriptions: HashMap::new(),
-            grinbox_domain: grinbox_domain.to_string(),
-            grinbox_port,
-            grinbox_protocol_unsecure,
+            grinrelay_domain: grinrelay_domain.to_string(),
+            grinrelay_port,
+            grinrelay_protocol_unsecure,
         }
     }
 
@@ -278,7 +278,7 @@ impl AsyncServer {
             return AsyncServer::error(GrinboxError::InvalidSignature);
         }
 
-        if to_address.port == self.grinbox_port && to_address.domain == self.grinbox_domain {
+        if to_address.port == self.grinrelay_port && to_address.domain == self.grinrelay_domain {
             let signed_payload = SignedPayload {
                 str,
                 challenge: challenge_raw.to_string(),
@@ -308,7 +308,7 @@ impl AsyncServer {
     }
 
     fn post_slate_federated(&self, from_address: &GrinboxAddress, to_address: &GrinboxAddress, str: String, signature: String, message_expiration_in_seconds: Option<u32>) -> GrinboxResponse {
-        let url = match self.grinbox_protocol_unsecure {
+        let url = match self.grinrelay_protocol_unsecure {
             false => format!(
                 "wss://{}:{}",
                 to_address.domain,
