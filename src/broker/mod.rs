@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod broker_protocol;
 mod rabbit_broker;
 mod stomp;

@@ -28,6 +28,7 @@ mod server;
 use broker::Broker;
 use server::AsyncServer;
 use std::net::ToSocketAddrs;
+use grinrelaylib::types::{ChainTypes, set_running_mode};
 
 fn main() {
     env_logger::init();
@@ -47,6 +48,13 @@ fn main() {
     let grinbox_port = std::env::var("GRINBOX_PORT").unwrap_or("13420".to_string());
     let grinbox_port = u16::from_str_radix(&grinbox_port, 10).expect("invalid GRINBOX_PORT given!");
     let grinbox_protocol_unsecure = std::env::var("GRINBOX_PROTOCOL_UNSECURE").map(|_| true).unwrap_or(false);
+
+    let is_mainnet = std::env::var("GRINBOX_IS_MAINNET").map(|_| true).unwrap_or(false);
+    if is_mainnet {
+        set_running_mode(ChainTypes::Mainnet);
+    } else {
+        set_running_mode(ChainTypes::Floonet);
+    }
 
     if broker_uri.is_none() {
         error!("could not resolve broker uri!");

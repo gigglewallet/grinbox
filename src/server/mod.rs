@@ -50,7 +50,7 @@ struct SignedPayload {
 
 impl Drop for AsyncServer {
     fn drop(&mut self) {
-        for (subject, _subscription) in &self.subscriptions {
+        for (_subject, _subscription) in &self.subscriptions {
             if self
                 .nats_sender
                 .unbounded_send(BrokerRequest::Unsubscribe {

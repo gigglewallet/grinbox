@@ -1,9 +1,9 @@
 [package]
-name = "grinbox"
+name = "grinrelay"
 version = "0.1.0"
-authors = ["vault713 devs"]
+authors = ["vault713 devs and giggle devs"]
 description = "A slate relay service for Grin."
-keywords = [ "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "wallet713", "vault713" ]
+keywords = [ "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle", "vault713" ]
 license = "Apache-2.0"
 readme = "README.md"
 
@@ -30,4 +30,4 @@ unicode-segmentation = "0.1"
 uuid = { version = "0.7", features = ["serde", "v4"] }
 ws = "0.7"
 
-grinboxlib = { path = "./grinboxlib" }
+grinrelaylib = { path = "./grinrelaylib" }

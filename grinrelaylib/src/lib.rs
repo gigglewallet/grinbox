@@ -1,6 +1,5 @@
 extern crate colored;
 extern crate failure;
-#[macro_use]
 extern crate log;
 extern crate parking_lot;
 extern crate regex;
@@ -11,13 +10,15 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate sha2;
 extern crate ws;
-
-extern crate grin_core;
+#[macro_use]
+extern crate lazy_static;
 
 pub mod client;
 pub mod error;
 pub mod utils;
 pub mod types;
+
+pub use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 
 #[cfg(test)]
 mod tests {

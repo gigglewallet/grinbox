@@ -2,15 +2,39 @@ use regex::Regex;
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Result};
-use crate::utils::is_mainnet;
 use crate::utils::secp::PublicKey;
 use crate::utils::crypto::Base58;
+use parking_lot::RwLock;
 
 pub const GRINBOX_ADDRESS_REGEX: &str = r"^(grinbox://)?(?P<public_key>[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{52})(@(?P<domain>[a-zA-Z0-9\.]+)(:(?P<port>[0-9]*))?)?$";
 pub const GRINBOX_ADDRESS_VERSION_MAINNET: [u8; 2] = [1, 11];
 pub const GRINBOX_ADDRESS_VERSION_TESTNET: [u8; 2] = [1, 120];
 pub const DEFAULT_GRINBOX_DOMAIN: &str = "grinbox.io";
 pub const DEFAULT_GRINBOX_PORT: u16 = 443;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ChainTypes {
+    /// Protocol testing network
+    Floonet,
+    /// Main production network
+    Mainnet,
+}
+
+lazy_static! {
+	/// The mining parameter mode
+	pub static ref CHAIN_TYPE: RwLock<ChainTypes> =
+			RwLock::new(ChainTypes::Mainnet);
+}
+
+pub fn is_mainnet() -> bool {
+    let param_ref = CHAIN_TYPE.read();
+    ChainTypes::Mainnet == *param_ref
+}
+
+pub fn set_running_mode(mode: ChainTypes) {
+    let mut param_ref = CHAIN_TYPE.write();
+    *param_ref = mode;
+}
 
 pub fn version_bytes() -> Vec<u8> {
     if is_mainnet() {

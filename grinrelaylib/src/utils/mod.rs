@@ -1,8 +1,6 @@
 use std::fmt::Write;
 use crate::error::{Result, ErrorKind};
 
-pub use grin_core::global::is_mainnet;
-
 pub mod base58;
 pub mod crypto;
 pub mod secp;

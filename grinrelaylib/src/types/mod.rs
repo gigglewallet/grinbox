@@ -4,7 +4,7 @@ mod grinbox_request;
 mod grinbox_response;
 mod tx_proof;
 
-pub use grin_wallet::libwallet::slate::Slate;
+pub use grin_wallet_libwallet::Slate;
 pub use parking_lot::{Mutex, MutexGuard};
 pub use std::sync::Arc;
 
@@ -13,3 +13,4 @@ pub use self::grinbox_message::GrinboxMessage;
 pub use self::grinbox_request::GrinboxRequest;
 pub use self::grinbox_response::{GrinboxError, GrinboxResponse};
 pub use self::tx_proof::{TxProof, ErrorKind as TxProofErrorKind};
+pub use self::grinbox_address::{ChainTypes, set_running_mode};
