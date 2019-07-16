@@ -4,6 +4,7 @@ use crate::error::{Result, ErrorKind};
 pub mod base58;
 pub mod crypto;
 pub mod secp;
+pub mod bech32;
 
 /// Encode the provided bytes into a hex string
 pub fn to_hex(bytes: Vec<u8>) -> String {
