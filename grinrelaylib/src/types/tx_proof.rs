@@ -45,11 +45,11 @@ impl TxProof {
         verify_signature(&challenge, &self.signature, &public_key)
             .map_err(|_| ErrorKind::VerifySignature)?;
 
-        let encrypted_message: GrinboxMessage =
+        let grinbox_message: GrinboxMessage =
             serde_json::from_str(&self.message).map_err(|_| ErrorKind::ParseGrinboxMessage)?;
 
         // TODO: at some point, make this check required
-        let destination = encrypted_message.destination.clone();
+        let destination = grinbox_message.destination.clone();
         if destination.is_some()
             && expected_destination.is_some()
             && destination.as_ref() != expected_destination
@@ -57,7 +57,7 @@ impl TxProof {
             return Err(ErrorKind::VerifyDestination);
         }
 
-        let decrypted_message = encrypted_message
+        let decrypted_message = grinbox_message
             .decrypt_with_key(&self.key)
             .map_err(|_| ErrorKind::DecryptMessage)?;
 
@@ -81,9 +81,9 @@ impl TxProof {
         let public_key = address
             .public_key()
             .map_err(|_| ErrorKind::ParsePublicKey)?;
-        let encrypted_message: GrinboxMessage =
+        let grinbox_message: GrinboxMessage =
             serde_json::from_str(&message).map_err(|_| ErrorKind::ParseGrinboxMessage)?;
-        let key = encrypted_message
+        let key = grinbox_message
             .key(&public_key, secret_key)
             .map_err(|_| ErrorKind::DecryptionKey)?;
 
