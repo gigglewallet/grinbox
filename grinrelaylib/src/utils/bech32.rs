@@ -18,23 +18,55 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Bech32 { hrp: "bech32", data: [0, 1, 2] }->"bech321qpz4nc4pe"
-
 //! Encode and decode the Bech32 format, with checksums
 //! 
 //! # Examples
 //! ```rust
-//! use bech32::bech32::Bech32;
+//! use bech32::Bech32;
 //! 
-//! let b = Bech32 {
-//!     hrp: "bech32".to_string(), 
-//!     data: vec![0x00, 0x01, 0x02] 
-//! };
-//! let encode = b.to_string().unwrap();
-//! assert_eq!(encode, "bech321qpz4nc4pe".to_string());
+//! let addr = Bech32 {
+//!            hrp: "gn".to_string(),
+//!            data: vec![
+//!                0x11, 0x6a, 0x20, 0x76, 0x58, 0x22, 0x1a, 0xa9, 0xa0, 0x4b, 0xe2,
+//!                0xfa, 0x6e, 0xbf, 0x28, 0x51, 0xdd, 0xf0, 0x36, 0x8d, 0x7a, 0x74,
+//!                0x94, 0x34, 0xc9, 0xd1, 0x2c, 0x8f, 0xc8, 0x2a, 0xa8, 0x11, 0xf8,
+//!            ]
+//!        };
+//!
+//! let bech32_addr = addr.to_string(false).unwrap();
+//! assert_eq!(bech32_addr, "gn1z94zqajcygd2ngztutaxa0eg28wlqd5d0f6fgdxf6ykgljp24qglsmstrr5".to_string());
+//!
 //! ```
 
-use super::CodingError;
+/// Error types for Bech32 encoding / decoding
+#[derive(PartialEq, Debug)]
+pub enum CodingError {
+    /// String does not contain the separator character
+    MissingSeparator,
+    /// The checksum does not match the rest of the data
+    InvalidChecksum,
+    /// The data or human-readable part is too long or too short
+    InvalidLength,
+    /// Some part of the string contains an invalid character
+    InvalidChar,
+    /// Some part of the data has an invalid value
+    InvalidData,
+    /// The whole string must be of one case
+    MixedCase,
+    /// Some AddressError
+    Address(AddressError),
+}
+
+/// Error types while encoding and decoding SegWit addresses
+#[derive(PartialEq, Debug)]
+pub enum AddressError {
+    /// Some 5-bit <-> 8-bit conversion error
+    Conversion(BitConversionError),
+    /// The provided human-readable portion does not match
+    HumanReadableMismatch,
+    /// The human-readable part is invalid (must be "gn" or "tn")
+    InvalidHumanReadablePart,
+}
 
 /// Grouping structure for the human-readable part and the data part
 /// of decoded Bech32 string.
@@ -74,25 +106,48 @@ type DecodeResult = Result<Bech32, CodingError>;
 
 impl Bech32 {
     /// Encode as a string
-    pub fn to_string(&self) -> EncodeResult {
+    pub fn to_string(&self, split: bool) -> EncodeResult {
         if self.hrp.len() < 1 {
             return Err(CodingError::InvalidLength)
         }
         let hrp_bytes: Vec<u8> = self.hrp.clone().into_bytes();
-        let mut combined: Vec<u8> = self.data.clone();
-        combined.extend_from_slice(&create_checksum(&hrp_bytes, &self.data));
-        let mut encoded: String = format!("{}{}", self.hrp, SEP);
+
+        // Convert 8-bit data into 5-bit
+        let mut combined: Vec<u8> = match convert_bits(self.data.to_vec(), 8, 5, true) {
+            Ok(p) => p,
+            Err(e) => return Err(CodingError::Address(AddressError::Conversion(e)))
+        };
+
+        combined.extend_from_slice(&create_checksum(&hrp_bytes, &combined));
+        let mut encoded: String = String::with_capacity(128);
+        encoded.push_str(format!("{}{}", self.hrp, SEP).as_str());
+        let start_pos = encoded.len();
         for p in combined {
             if p >= 32 {
                 return Err(CodingError::InvalidData)
             }
             encoded.push(CHARSET[p as usize]);
         }
+
+        if split {
+            if encoded.len() > start_pos+16 {
+                encoded.insert_str(start_pos + 8, "-");
+                encoded.insert_str(start_pos, "-");
+            }
+
+            if encoded.len() > start_pos+16 {
+                encoded.insert_str(encoded.len() - 6, "-");
+            }
+        }
+
         Ok(encoded)
     }
 
     /// Decode from a string
-    pub fn from_string(s: String) -> DecodeResult {
+    pub fn from_string(bech32_addr: String) -> DecodeResult {
+        let mut s: String = bech32_addr;
+        s.retain(|c| c != '-');
+
         // Ensure overall length is within bounds
         let len: usize = s.len();
         if len < 8 || len > 90 {
@@ -175,7 +230,11 @@ impl Bech32 {
 
         Ok(Bech32 {
             hrp: String::from_utf8(hrp_bytes).unwrap(),
-            data: data_bytes
+            // Convert to 8-bit program and assign
+            data: match convert_bits(data_bytes, 5, 8, false) {
+                Ok(p) => p,
+                Err(e) => return Err(CodingError::Address(AddressError::Conversion(e)))
+            }
         })
     }
 }
@@ -227,4 +286,104 @@ fn polymod(values: Vec<u8>) -> u32 {
         }
     }
     chk
+}
+
+/// Error types during bit conversion
+#[derive(PartialEq, Debug)]
+pub enum BitConversionError {
+    /// Input value exceeds "from bits" size
+    InvalidInputValue(u8),
+    /// Invalid padding values in data
+    InvalidPadding,
+}
+
+type ConvertResult = Result<Vec<u8>, BitConversionError>;
+
+/// Convert between bit sizes
+///
+/// # Panics
+/// Function will panic if attempting to convert `from` or `to` a bit size that
+/// is larger than 8 bits.
+fn convert_bits(data: Vec<u8>, from: u32, to: u32, pad: bool) -> ConvertResult {
+    if from > 8 || to > 8 {
+        panic!("convert_bits `from` and `to` parameters greater than 8");
+    }
+    let mut acc: u32 = 0;
+    let mut bits: u32 = 0;
+    let mut ret: Vec<u8> = Vec::new();
+    let maxv: u32 = (1<<to) - 1;
+    for value in data {
+        let v: u32 = value as u32;
+        if (v >> from) != 0 {
+            // Input value exceeds `from` bit size
+            return Err(BitConversionError::InvalidInputValue(v as u8))
+        }
+        acc = (acc << from) | v;
+        bits += from;
+        while bits >= to {
+            bits -= to;
+            ret.push(((acc >> bits) & maxv) as u8);
+        }
+    }
+    if pad {
+        if bits > 0 {
+            ret.push(((acc << (to - bits)) & maxv) as u8);
+        }
+    } else if bits >= from || ((acc << (to - bits)) & maxv) != 0 {
+        return Err(BitConversionError::InvalidPadding)
+    }
+    Ok(ret)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bech32_demo() {
+
+        // with 5 bytes data
+
+        let b = Bech32 {
+            hrp: "bech32".to_string(),
+            data: vec![0x00, 0x44, 0x32, 0x14, 0xc7]
+        };
+        let encode = b.to_string(false).unwrap();
+        assert_eq!(encode, "bech321qpzry9x8vrqdnl".to_string());
+
+        let decode = Bech32::from_string(encode).unwrap();
+        assert_eq!(decode, b);
+
+        // with 33 bytes data (a typical Public Key address)
+
+        let a1 = Bech32 {
+            hrp: "gn".to_string(),
+            data: vec![
+                0x11, 0x6a, 0x20, 0x76, 0x58, 0x22, 0x1a, 0xa9, 0xa0, 0x4b, 0xe2,
+                0xfa, 0x6e, 0xbf, 0x28, 0x51, 0xdd, 0xf0, 0x36, 0x8d, 0x7a, 0x74,
+                0x94, 0x34, 0xc9, 0xd1, 0x2c, 0x8f, 0xc8, 0x2a, 0xa8, 0x11, 0xf8,
+            ]
+        };
+        let encode = a1.to_string(false).unwrap();
+        assert_eq!(encode, "gn1z94zqajcygd2ngztutaxa0eg28wlqd5d0f6fgdxf6ykgljp24qglsmstrr5".to_string());
+
+        println!("data size: {} bytes, bech32 address size: {} bytes", a1.data.len(), encode.len());
+
+        let decode = Bech32::from_string(encode).unwrap();
+        assert_eq!(decode, a1);
+
+        // decode with some errors (no more than 4 errors can be detected definitely)
+
+        let str = "gn1z94zqajcygd2ngztutaxa0eg28wlqd5d0f6fgdxf6ykgljp24qglsms4err";
+        let decode = Bech32::from_string(str.to_owned());
+        assert_eq!(decode, Err(CodingError::InvalidChecksum));
+
+        // with '-' splitter
+
+        let encode = a1.to_string(true).unwrap();
+        assert_eq!(encode, "gn1-z94zqajc-ygd2ngztutaxa0eg28wlqd5d0f6fgdxf6ykgljp24qgls-mstrr5".to_string());
+
+        let decode = Bech32::from_string(encode).unwrap();
+        assert_eq!(decode, a1);
+    }
 }
