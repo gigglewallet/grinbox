@@ -1,9 +1,9 @@
 use ring::{aead, digest, pbkdf2};
 
 use crate::error::{ErrorKind, Result};
-use crate::utils::from_hex;
-use crate::utils::secp::{Secp256k1, PublicKey, SecretKey};
 use crate::types::GrinboxAddress;
+use crate::utils::from_hex;
+use crate::utils::secp::{PublicKey, Secp256k1, SecretKey};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GrinboxMessage {
@@ -15,7 +15,6 @@ pub struct GrinboxMessage {
 }
 
 impl GrinboxMessage {
-
     pub fn key(&self, sender_public_key: &PublicKey, secret_key: &SecretKey) -> Result<[u8; 32]> {
         let salt = from_hex(self.salt.clone()).map_err(|_| ErrorKind::Decryption)?;
 

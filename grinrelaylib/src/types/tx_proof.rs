@@ -1,6 +1,6 @@
 use crate::types::{GrinboxAddress, GrinboxMessage, Slate};
+use crate::utils::crypto::{verify_signature, Hex};
 use crate::utils::secp::{Commitment, SecretKey, Signature};
-use crate::utils::crypto::{Hex, verify_signature};
 
 #[derive(Debug)]
 pub enum ErrorKind {

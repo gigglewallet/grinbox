@@ -1,25 +1,23 @@
-use failure::Fail;
 use crate::types::GrinboxError;
+use crate::utils::bech32::CodingError;
+use failure::Fail;
 
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Clone, Debug, Eq, Fail, PartialEq, Serialize, Deserialize)]
 pub enum ErrorKind {
     #[fail(display = "\x1b[31;1merror:\x1b[0m {}", 0)]
     GenericError(String),
     #[fail(display = "\x1b[31;1merror:\x1b[0m secp error")]
     SecpError,
-    #[fail(display = "\x1b[31;1merror:\x1b[0m invalid character!")]
-    InvalidBase58Character(char, usize),
-    #[fail(display = "\x1b[31;1merror:\x1b[0m invalid length!")]
-    InvalidBase58Length,
-    #[fail(display = "\x1b[31;1merror:\x1b[0m invalid checksum!")]
-    InvalidBase58Checksum,
-    #[fail(display = "\x1b[31;1merror:\x1b[0m invalid network!")]
-    InvalidBase58Version,
+    #[fail(display = "\x1b[31;1merror:\x1b[0m invalid chain type!")]
+    InvalidChainType,
     #[fail(display = "\x1b[31;1merror:\x1b[0m invalid key!")]
-    InvalidBase58Key,
+    InvalidBech32Key,
     #[fail(display = "\x1b[31;1merror:\x1b[0m could not parse number from string!")]
     NumberParsingError,
-    #[fail(display = "\x1b[31;1merror:\x1b[0m could not parse `{}` to a grinrelay address!", 0)]
+    #[fail(
+        display = "\x1b[31;1merror:\x1b[0m could not parse `{}` to a grinrelay address!",
+        0
+    )]
     GrinboxAddressParsingError(String),
     #[fail(display = "\x1b[31;1merror:\x1b[0m unable to encrypt message")]
     Encryption,
@@ -31,4 +29,6 @@ pub enum ErrorKind {
     GrinboxWebsocketAbnormalTermination,
     #[fail(display = "\x1b[31;1merror:\x1b[0m grinrelay protocol error `{}`", 0)]
     GrinboxProtocolError(GrinboxError),
+    #[fail(display = "\x1b[31;1merror:\x1b[0m bech32 coding error `{}`", 0)]
+    Bech32Error(CodingError),
 }

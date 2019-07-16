@@ -1,22 +1,22 @@
 use sha2::{Digest, Sha256};
 
-use crate::error::{ErrorKind, Result};
-use super::base58::{FromBase58, ToBase58};
-use super::secp::{Message, Secp256k1, Signature, Commitment, PublicKey, SecretKey};
+use super::bech32::Bech32;
+use super::secp::{Commitment, Message, PublicKey, Secp256k1, SecretKey, Signature};
 use super::{from_hex, to_hex};
+use crate::error::{ErrorKind, Result};
 
 pub trait Hex<T> {
     fn from_hex(str: &str) -> Result<T>;
     fn to_hex(&self) -> String;
 }
 
-pub trait Base58<T> {
-    fn from_base58(str: &str) -> Result<T>;
-    fn to_base58(&self) -> String;
+pub trait AddrBech32<T> {
+    fn from_bech32(bech32_str: &str) -> Result<T>;
 
-    fn from_base58_check(str: &str, hrp_bytes: Vec<u8>) -> Result<T>;
-    fn from_base58_check_raw(str: &str, hrp_bytes: usize) -> Result<(T, Vec<u8>)>;
-    fn to_base58_check(&self, version: Vec<u8>) -> String;
+    fn from_bech32_check(bech32_str: &str, hrp_bytes: Vec<u8>) -> Result<T>;
+    fn from_bech32_check_raw(bech32_str: &str) -> Result<(T, Vec<u8>)>;
+
+    fn to_bech32(&self, hrp_bytes: Vec<u8>) -> String;
 }
 
 fn serialize_public_key(public_key: &PublicKey) -> Vec<u8> {
@@ -29,7 +29,7 @@ impl Hex<PublicKey> for PublicKey {
     fn from_hex(str: &str) -> Result<PublicKey> {
         let secp = Secp256k1::new();
         let hex = from_hex(str.to_string())?;
-        PublicKey::from_slice(&secp, &hex).map_err(|_| ErrorKind::InvalidBase58Key.into())
+        PublicKey::from_slice(&secp, &hex).map_err(|_| ErrorKind::InvalidBech32Key.into())
     }
 
     fn to_hex(&self) -> String {
@@ -37,36 +37,42 @@ impl Hex<PublicKey> for PublicKey {
     }
 }
 
-impl Base58<PublicKey> for PublicKey {
-    fn from_base58(str: &str) -> Result<PublicKey> {
+impl AddrBech32<PublicKey> for PublicKey {
+    fn from_bech32(bech32_str: &str) -> Result<PublicKey> {
         let secp = Secp256k1::new();
-        let str = str::from_base58(str)?;
-        PublicKey::from_slice(&secp, &str).map_err(|_| ErrorKind::InvalidBase58Key.into())
-    }
-
-    fn to_base58(&self) -> String {
-        serialize_public_key(self).to_base58()
-    }
-
-    fn from_base58_check_raw(str: &str, hrp_bytes: usize) -> Result<(PublicKey, Vec<u8>)> {
-        let secp = Secp256k1::new();
-        let (hrp_bytes, key_bytes) = str::from_base58_check(str, hrp_bytes)?;
-        let public_key = PublicKey::from_slice(&secp, &key_bytes).map_err(|_| ErrorKind::InvalidBase58Key)?;
-        Ok((public_key, hrp_bytes))
-    }
-
-    fn from_base58_check(str: &str, version_expect: Vec<u8>) -> Result<PublicKey> {
-        let secp = Secp256k1::new();
-        let n_version = version_expect.len();
-        let (version_actual, key_bytes) = str::from_base58_check(str, n_version)?;
-        if version_actual != version_expect {
-            return Err(ErrorKind::InvalidBase58Version.into());
+        let addr = Bech32::from_string(bech32_str);
+        if let Err(e) = addr {
+            return Err(ErrorKind::Bech32Error(e).into());
         }
-        PublicKey::from_slice(&secp, &key_bytes).map_err(|_| ErrorKind::InvalidBase58Key.into())
+        PublicKey::from_slice(&secp, &addr.unwrap().data)
+            .map_err(|_| ErrorKind::InvalidBech32Key.into())
     }
 
-    fn to_base58_check(&self, version: Vec<u8>) -> String {
-        serialize_public_key(self).to_base58_check(version)
+    fn from_bech32_check(bech32_str: &str, version_expect: Vec<u8>) -> Result<PublicKey> {
+        let secp = Secp256k1::new();
+        let addr = Bech32::from_string(bech32_str)?;
+        if addr.hrp.into_bytes() != version_expect {
+            return Err(ErrorKind::InvalidChainType.into());
+        }
+        PublicKey::from_slice(&secp, &addr.data).map_err(|_| ErrorKind::InvalidBech32Key.into())
+    }
+
+    fn from_bech32_check_raw(bech32_str: &str) -> Result<(PublicKey, Vec<u8>)> {
+        let secp = Secp256k1::new();
+        let addr = Bech32::from_string(bech32_str)?;
+        let pub_key = PublicKey::from_slice(&secp, &addr.data);
+        if let Err(_) = pub_key {
+            return Err(ErrorKind::InvalidBech32Key.into());
+        }
+        Ok((pub_key.unwrap(), addr.hrp.into_bytes()))
+    }
+
+    fn to_bech32(&self, hrp_bytes: Vec<u8>) -> String {
+        let b = Bech32 {
+            hrp: String::from_utf8_lossy(&hrp_bytes).into_owned(),
+            data: serialize_public_key(self),
+        };
+        b.to_string(false).unwrap()
     }
 }
 

@@ -7,11 +7,13 @@ use futures::{
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use ws::{CloseCode, Handler, Handshake, Message, Request, Response, Result as WsResult, Sender, connect};
+use ws::{
+    connect, CloseCode, Handler, Handshake, Message, Request, Response, Result as WsResult, Sender,
+};
 
 use grinrelaylib::error::{ErrorKind, Result};
 use grinrelaylib::types::{GrinboxAddress, GrinboxError, GrinboxRequest, GrinboxResponse};
-use grinrelaylib::utils::crypto::{verify_signature, Base58, Hex};
+use grinrelaylib::utils::crypto::{verify_signature, AddrBech32, Hex};
 use grinrelaylib::utils::secp::{PublicKey, Signature};
 
 use crate::broker::{BrokerRequest, BrokerResponse};
@@ -171,7 +173,7 @@ impl AsyncServer {
     }
 
     fn verify_signature(&self, public_key: &str, challenge: &str, signature: &str) -> Result<()> {
-        let (public_key, _) = PublicKey::from_base58_check_raw(public_key, 2)?;
+        let (public_key, _) = PublicKey::from_bech32_check_raw(public_key)?;
         let signature = Signature::from_hex(signature)?;
         verify_signature(challenge, &signature, &public_key)
             .map_err(|_| ErrorKind::GrinboxProtocolError(GrinboxError::InvalidSignature))?;
@@ -264,8 +266,7 @@ impl AsyncServer {
         let mut challenge = String::new();
         challenge.push_str(&str);
 
-        let mut result =
-            self.verify_signature(&from_address.public_key, &challenge, &signature);
+        let mut result = self.verify_signature(&from_address.public_key, &challenge, &signature);
 
         let mut challenge_raw = "";
         if result.is_err() {
@@ -296,29 +297,34 @@ impl AsyncServer {
                     message_expiration_in_seconds,
                 })
                 .is_err()
-                {
-                    error!("could not post message to broker!");
-                    return AsyncServer::error(GrinboxError::UnknownError);
-                };
+            {
+                error!("could not post message to broker!");
+                return AsyncServer::error(GrinboxError::UnknownError);
+            };
 
             AsyncServer::ok()
         } else {
-            self.post_slate_federated(&from_address, &to_address, str, signature, message_expiration_in_seconds)
+            self.post_slate_federated(
+                &from_address,
+                &to_address,
+                str,
+                signature,
+                message_expiration_in_seconds,
+            )
         }
     }
 
-    fn post_slate_federated(&self, from_address: &GrinboxAddress, to_address: &GrinboxAddress, str: String, signature: String, message_expiration_in_seconds: Option<u32>) -> GrinboxResponse {
+    fn post_slate_federated(
+        &self,
+        from_address: &GrinboxAddress,
+        to_address: &GrinboxAddress,
+        str: String,
+        signature: String,
+        message_expiration_in_seconds: Option<u32>,
+    ) -> GrinboxResponse {
         let url = match self.grinrelay_protocol_unsecure {
-            false => format!(
-                "wss://{}:{}",
-                to_address.domain,
-                to_address.port
-            ),
-            true => format!(
-                "ws://{}:{}",
-                to_address.domain,
-                to_address.port
-            )
+            false => format!("wss://{}:{}", to_address.domain, to_address.port),
+            true => format!("ws://{}:{}", to_address.domain, to_address.port),
         };
 
         let str = str.clone();

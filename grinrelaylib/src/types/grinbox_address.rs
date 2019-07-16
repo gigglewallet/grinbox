@@ -2,8 +2,8 @@ use regex::Regex;
 use std::fmt::{self, Display};
 
 use crate::error::{ErrorKind, Result};
+use crate::utils::crypto::AddrBech32;
 use crate::utils::secp::PublicKey;
-use crate::utils::crypto::Base58;
 use parking_lot::RwLock;
 
 pub const GRINRELAY_ADDRESS_REGEX: &str = r"^(grinrelay://)?(?P<public_key>[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{52})(@(?P<domain>[a-zA-Z0-9\.]+)(:(?P<port>[0-9]*))?)?$";
@@ -21,9 +21,9 @@ pub enum ChainTypes {
 }
 
 lazy_static! {
-	/// The mining parameter mode
-	pub static ref CHAIN_TYPE: RwLock<ChainTypes> =
-			RwLock::new(ChainTypes::Mainnet);
+    /// The mining parameter mode
+    pub static ref CHAIN_TYPE: RwLock<ChainTypes> =
+            RwLock::new(ChainTypes::Mainnet);
 }
 
 pub fn is_mainnet() -> bool {
@@ -55,16 +55,21 @@ pub struct GrinboxAddress {
 impl GrinboxAddress {
     pub fn new(public_key: PublicKey, domain: Option<String>, port: Option<u16>) -> Self {
         Self {
-            public_key: public_key.to_base58_check(hrp_bytes()),
+            public_key: public_key.to_bech32(hrp_bytes()),
             domain: domain.unwrap_or(DEFAULT_GRINRELAY_DOMAIN.to_string()),
             port: port.unwrap_or(DEFAULT_GRINRELAY_PORT),
             hrp_bytes: None,
         }
     }
 
-    pub fn new_raw(public_key: PublicKey, domain: Option<String>, port: Option<u16>, hrp_bytes: Vec<u8>) -> Self {
+    pub fn new_raw(
+        public_key: PublicKey,
+        domain: Option<String>,
+        port: Option<u16>,
+        hrp_bytes: Vec<u8>,
+    ) -> Self {
         Self {
-            public_key: public_key.to_base58_check(hrp_bytes.clone()),
+            public_key: public_key.to_bech32(hrp_bytes.clone()),
             domain: domain.unwrap_or(DEFAULT_GRINRELAY_DOMAIN.to_string()),
             port: port.unwrap_or(DEFAULT_GRINRELAY_PORT),
             hrp_bytes: Some(hrp_bytes),
@@ -85,7 +90,7 @@ impl GrinboxAddress {
             .name("port")
             .map(|m| u16::from_str_radix(m.as_str(), 10).unwrap());
 
-        let public_key = PublicKey::from_base58_check(&public_key, hrp_bytes())?;
+        let public_key = PublicKey::from_bech32_check(&public_key, hrp_bytes())?;
 
         Ok(GrinboxAddress::new(public_key, domain, port))
     }
@@ -104,13 +109,13 @@ impl GrinboxAddress {
             .name("port")
             .map(|m| u16::from_str_radix(m.as_str(), 10).unwrap());
 
-        let (public_key, hrp_bytes) = PublicKey::from_base58_check_raw(&public_key, 2)?;
+        let (public_key, hrp_bytes) = PublicKey::from_bech32_check_raw(&public_key)?;
 
         Ok(GrinboxAddress::new_raw(public_key, domain, port, hrp_bytes))
     }
 
     pub fn public_key(&self) -> Result<PublicKey> {
-        PublicKey::from_base58_check(&self.public_key, hrp_bytes())
+        PublicKey::from_bech32_check(&self.public_key, hrp_bytes())
     }
 
     pub fn stripped(&self) -> String {

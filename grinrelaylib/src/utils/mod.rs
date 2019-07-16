@@ -1,10 +1,9 @@
+use crate::error::{ErrorKind, Result};
 use std::fmt::Write;
-use crate::error::{Result, ErrorKind};
 
-pub mod base58;
+pub mod bech32;
 pub mod crypto;
 pub mod secp;
-pub mod bech32;
 
 /// Encode the provided bytes into a hex string
 pub fn to_hex(bytes: Vec<u8>) -> String {
@@ -37,4 +36,3 @@ fn split_n(s: &str, n: usize) -> Vec<&str> {
         .map(|i| &s[2 * i..2 * i + n])
         .collect()
 }
-
