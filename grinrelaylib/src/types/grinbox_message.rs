@@ -1,8 +1,7 @@
-use rand::{Rng, thread_rng};
 use ring::{aead, digest, pbkdf2};
 
 use crate::error::{ErrorKind, Result};
-use crate::utils::{from_hex, to_hex};
+use crate::utils::from_hex;
 use crate::utils::secp::{Secp256k1, PublicKey, SecretKey};
 use crate::types::GrinboxAddress;
 
@@ -29,7 +28,7 @@ impl GrinboxMessage {
         let common_secret_slice = &common_secret_ser[1..33];
 
         let mut key = [0; 32];
-        pbkdf2::derive(&digest::SHA512, 100, &salt, common_secret_slice, &mut key);
+        pbkdf2::derive(&digest::SHA512, 10000, &salt, common_secret_slice, &mut key);
 
         Ok(key)
     }
