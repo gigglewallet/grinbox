@@ -14,8 +14,8 @@ pub trait Base58<T> {
     fn from_base58(str: &str) -> Result<T>;
     fn to_base58(&self) -> String;
 
-    fn from_base58_check(str: &str, version_bytes: Vec<u8>) -> Result<T>;
-    fn from_base58_check_raw(str: &str, version_bytes: usize) -> Result<(T, Vec<u8>)>;
+    fn from_base58_check(str: &str, hrp_bytes: Vec<u8>) -> Result<T>;
+    fn from_base58_check_raw(str: &str, hrp_bytes: usize) -> Result<(T, Vec<u8>)>;
     fn to_base58_check(&self, version: Vec<u8>) -> String;
 }
 
@@ -48,11 +48,11 @@ impl Base58<PublicKey> for PublicKey {
         serialize_public_key(self).to_base58()
     }
 
-    fn from_base58_check_raw(str: &str, version_bytes: usize) -> Result<(PublicKey, Vec<u8>)> {
+    fn from_base58_check_raw(str: &str, hrp_bytes: usize) -> Result<(PublicKey, Vec<u8>)> {
         let secp = Secp256k1::new();
-        let (version_bytes, key_bytes) = str::from_base58_check(str, version_bytes)?;
+        let (hrp_bytes, key_bytes) = str::from_base58_check(str, hrp_bytes)?;
         let public_key = PublicKey::from_slice(&secp, &key_bytes).map_err(|_| ErrorKind::InvalidBase58Key)?;
-        Ok((public_key, version_bytes))
+        Ok((public_key, hrp_bytes))
     }
 
     fn from_base58_check(str: &str, version_expect: Vec<u8>) -> Result<PublicKey> {

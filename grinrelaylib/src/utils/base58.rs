@@ -23,7 +23,7 @@ pub trait ToBase58 {
 pub trait FromBase58 {
     /// Convert a value of `self`, interpreted as base58 encoded data, into an owned vector of bytes, returning a vector.
     fn from_base58(&self) -> Result<Vec<u8>>;
-    fn from_base58_check(&self, version_bytes: usize) -> Result<(Vec<u8>, Vec<u8>)>;
+    fn from_base58_check(&self, hrp_bytes: usize) -> Result<(Vec<u8>, Vec<u8>)>;
 }
 
 impl ToBase58 for [u8] {
@@ -153,7 +153,7 @@ impl FromBase58 for str {
         Ok(bin[leading_zeros - zcount..].to_vec())
     }
 
-    fn from_base58_check(&self, version_bytes: usize) -> Result<(Vec<u8>, Vec<u8>)> {
+    fn from_base58_check(&self, hrp_bytes: usize) -> Result<(Vec<u8>, Vec<u8>)> {
         let mut payload: Vec<u8> = self.from_base58()?;
         if payload.len() < 5 {
             Err(ErrorKind::InvalidBase58Checksum)?;
@@ -165,8 +165,8 @@ impl FromBase58 for str {
             Err(ErrorKind::InvalidBase58Checksum)?;
         }
         Ok((
-            payload[..version_bytes].to_vec(),
-            payload[version_bytes..].to_vec(),
+            payload[..hrp_bytes].to_vec(),
+            payload[hrp_bytes..].to_vec(),
         ))
     }
 }
