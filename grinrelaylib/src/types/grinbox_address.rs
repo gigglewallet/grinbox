@@ -6,11 +6,11 @@ use crate::utils::crypto::AddrBech32;
 use crate::utils::secp::PublicKey;
 use parking_lot::RwLock;
 
-pub const GRINRELAY_ADDRESS_REGEX: &str = r"^(grinrelay://)?(?P<public_key>[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{52})(@(?P<domain>[a-zA-Z0-9\.]+)(:(?P<port>[0-9]*))?)?$";
+pub const GRINRELAY_ADDRESS_REGEX: &str = r"^(grinrelay://)?(?P<public_key>[0123456789acdefghjkmnpqrstuvwxyz-]{67})(@(?P<domain>[a-zA-Z0-9\.]+)(:(?P<port>[0-9]*))?)?$";
 pub const GRINRELAY_ADDRESS_HRP_MAINNET: &str = "gn";
 pub const GRINRELAY_ADDRESS_HRP_TESTNET: &str = "tn";
 pub const DEFAULT_GRINRELAY_DOMAIN: &str = "relay.grin.icu";
-pub const DEFAULT_GRINRELAY_PORT: u16 = 443;
+pub const DEFAULT_GRINRELAY_PORT: u16 = 3418;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ChainTypes {
