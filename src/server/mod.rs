@@ -279,7 +279,7 @@ impl AsyncServer {
             return AsyncServer::error(GrinboxError::InvalidSignature);
         }
 
-        if to_address.port == self.grinrelay_port && to_address.domain == self.grinrelay_domain {
+        if to_address.port == self.grinrelay_port && self.grinrelay_domain.ends_with(to_address.domain.as_str()) {
             let signed_payload = SignedPayload {
                 str,
                 challenge: challenge_raw.to_string(),

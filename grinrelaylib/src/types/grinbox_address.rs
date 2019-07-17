@@ -6,6 +6,7 @@ use crate::utils::crypto::AddrBech32;
 use crate::utils::secp::PublicKey;
 use parking_lot::RwLock;
 
+pub const GRINRELAY_PREFIX: &str = "grinrelay://";
 pub const GRINRELAY_ADDRESS_REGEX: &str = r"^(grinrelay://)?(?P<public_key>[0-9a-z\-]{62,67})(@(?P<domain>[a-zA-Z0-9\.]+)(:(?P<port>[0-9]*))?)?$";
 pub const GRINRELAY_ADDRESS_HRP_MAINNET: &str = "gn";
 pub const GRINRELAY_ADDRESS_HRP_TESTNET: &str = "tn";
@@ -119,13 +120,13 @@ impl GrinboxAddress {
     }
 
     pub fn stripped(&self) -> String {
-        format!("{}", self)[10..].to_string()
+        format!("{}", self)[GRINRELAY_PREFIX.len()..].to_string()
     }
 }
 
 impl Display for GrinboxAddress {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "grinrelay://{}", self.public_key)?;
+        write!(f, "{}{}", GRINRELAY_PREFIX, self.public_key)?;
         if !self.domain.ends_with(DEFAULT_GRINRELAY_DOMAIN) || self.port != DEFAULT_GRINRELAY_PORT {
             write!(f, "@{}", self.domain)?;
             if self.port != DEFAULT_GRINRELAY_PORT {
