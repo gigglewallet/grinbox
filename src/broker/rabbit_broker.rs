@@ -5,20 +5,19 @@ use tokio::net::TcpStream;
 use tokio::prelude::*;
 
 use futures::{
-    Stream,
     sync::mpsc::{unbounded, UnboundedSender},
-    Future
+    Future, Stream,
 };
 
 use grinrelaylib::error::Result;
 
-use crate::broker::{BrokerRequest, BrokerResponse};
+use crate::broker::stomp::connection::{Credentials, HeartBeat};
+use crate::broker::stomp::frame::Frame;
+use crate::broker::stomp::header::{Header, HeaderName, SUBSCRIPTION};
 use crate::broker::stomp::session::SessionEvent;
 use crate::broker::stomp::session_builder::SessionBuilder;
-use crate::broker::stomp::connection::{HeartBeat, Credentials};
-use crate::broker::stomp::header::{Header, HeaderName, SUBSCRIPTION};
 use crate::broker::stomp::subscription::AckMode;
-use crate::broker::stomp::frame::Frame;
+use crate::broker::{BrokerRequest, BrokerResponse};
 
 type Session = crate::broker::stomp::session::Session<TcpStream>;
 
@@ -67,15 +66,29 @@ impl Broker {
             let request_loop = rx
                 .for_each(move |request| {
                     match request {
-                        BrokerRequest::Subscribe { id, subject, response_sender } => {
+                        BrokerRequest::Subscribe {
+                            id,
+                            subject,
+                            response_sender,
+                        } => {
                             session_clone.subscribe(id, subject.clone(), response_sender.clone());
-                        },
+                        }
                         BrokerRequest::Unsubscribe { id } => {
                             session_clone.unsubscribe(&id);
-                        },
-                        BrokerRequest::PostMessage { subject, payload, reply_to, message_expiration_in_seconds } => {
-                            session_clone.publish(&subject, &payload, &reply_to, message_expiration_in_seconds);
-                        },
+                        }
+                        BrokerRequest::PostMessage {
+                            subject,
+                            payload,
+                            reply_to,
+                            message_expiration_in_seconds,
+                        } => {
+                            session_clone.publish(
+                                &subject,
+                                &payload,
+                                &reply_to,
+                                message_expiration_in_seconds,
+                            );
+                        }
                     }
                     Ok(())
                 })
@@ -102,7 +115,11 @@ struct Consumer {
 }
 
 impl Consumer {
-    pub fn new(subject: String, subscription_id: String, sender: UnboundedSender<BrokerResponse>) -> Consumer {
+    pub fn new(
+        subject: String,
+        subscription_id: String,
+        sender: UnboundedSender<BrokerResponse>,
+    ) -> Consumer {
         Consumer {
             subject,
             subscription_id,
@@ -134,30 +151,40 @@ impl BrokerSession {
             .unwrap()
             .subscription(&subject)
             .with(AckMode::Auto)
-            .with(
-                Header::new(
-                    HeaderName::from_str("x-expires"),
-                    DEFAULT_QUEUE_EXPIRATION
-                )
-            )
+            .with(Header::new(
+                HeaderName::from_str("x-expires"),
+                DEFAULT_QUEUE_EXPIRATION,
+            ))
             .start();
 
         let consumer = Consumer::new(subject.clone(), subscription_id.clone(), sender);
-        self.subject_to_consumer_id_lookup.lock().unwrap().insert(subject, id.clone());
-        self.subscription_id_to_consumer_id_lookup.lock().unwrap().insert(subscription_id, id.clone());
+        self.subject_to_consumer_id_lookup
+            .lock()
+            .unwrap()
+            .insert(subject, id.clone());
+        self.subscription_id_to_consumer_id_lookup
+            .lock()
+            .unwrap()
+            .insert(subscription_id, id.clone());
         self.consumers.lock().unwrap().insert(id, consumer);
     }
 
     fn unsubscribe_by_subject(&mut self, subject: &str) {
-        if let Some(consumer_id) = self.subject_to_consumer_id_lookup.lock().unwrap().remove(subject) {
+        if let Some(consumer_id) = self
+            .subject_to_consumer_id_lookup
+            .lock()
+            .unwrap()
+            .remove(subject)
+        {
             if let Some(consumer) = self.consumers.lock().unwrap().remove(&consumer_id) {
-                self.subscription_id_to_consumer_id_lookup.lock().unwrap().remove(&consumer.subscription_id);
-                self
-                    .session
+                self.subscription_id_to_consumer_id_lookup
+                    .lock()
+                    .unwrap()
+                    .remove(&consumer.subscription_id);
+                self.session
                     .lock()
                     .unwrap()
                     .unsubscribe(&consumer.subscription_id);
-
             } else {
                 error!("could not find consumer for subject [{}]", subject);
             }
@@ -166,79 +193,91 @@ impl BrokerSession {
 
     fn unsubscribe(&mut self, id: &str) {
         if let Some(consumer) = self.consumers.lock().unwrap().remove(id) {
-            if let Some(_) = self.subject_to_consumer_id_lookup.lock().unwrap().remove(&consumer.subject) {
-                self.subscription_id_to_consumer_id_lookup.lock().unwrap().remove(&consumer.subscription_id);
-                self
-                    .session
+            if let Some(_) = self
+                .subject_to_consumer_id_lookup
+                .lock()
+                .unwrap()
+                .remove(&consumer.subject)
+            {
+                self.subscription_id_to_consumer_id_lookup
+                    .lock()
+                    .unwrap()
+                    .remove(&consumer.subscription_id);
+                self.session
                     .lock()
                     .unwrap()
                     .unsubscribe(&consumer.subscription_id);
-
             } else {
                 error!("could not find consumer for id [{}]", id);
             }
         }
     }
 
-    fn publish(&self, subject: &str, payload: &str, reply_to: &str, message_expiration_in_seconds: Option<u32>) {
+    fn publish(
+        &self,
+        subject: &str,
+        payload: &str,
+        reply_to: &str,
+        message_expiration_in_seconds: Option<u32>,
+    ) {
         let destination = format!("/queue/{}", subject);
         let message_expiration = match message_expiration_in_seconds {
-            Some(message_expiration_in_seconds @ 1 ... 86400) => format!("{}", message_expiration_in_seconds * 1000),
+            Some(message_expiration_in_seconds @ 1...86400) => {
+                format!("{}", message_expiration_in_seconds * 1000)
+            }
             _ => format!("{}", DEFAULT_MESSAGE_EXPIRATION * 1000),
         };
 
-        self
-            .session
+        self.session
             .lock()
             .unwrap()
             .message(&destination, payload)
-            .with(
-                Header::new(
-                    HeaderName::from_str("x-expires"),
-                    DEFAULT_QUEUE_EXPIRATION
-                )
-            )
-            .with(
-                Header::new(
-                    HeaderName::from_str("expiration"),
-                    &message_expiration
-                )
-            )
-            .with(
-                Header::new(
-                    HeaderName::from_str(REPLY_TO_HEADER_NAME),
-                    reply_to
-                )
-            )
+            .with(Header::new(
+                HeaderName::from_str("x-expires"),
+                DEFAULT_QUEUE_EXPIRATION,
+            ))
+            .with(Header::new(
+                HeaderName::from_str("expiration"),
+                &message_expiration,
+            ))
+            .with(Header::new(
+                HeaderName::from_str(REPLY_TO_HEADER_NAME),
+                reply_to,
+            ))
             .send();
     }
 
     fn on_message(&mut self, frame: Frame) {
         if let Some(subscription_id) = frame.headers.get(SUBSCRIPTION) {
-            match self.subscription_id_to_consumer_id_lookup.lock().unwrap().get(subscription_id) {
-                Some(consumer_id) => {
-                    match self.consumers.lock().unwrap().get(consumer_id) {
-                        Some(consumer) => {
-                            if let Some(reply_to) = frame.headers.get(HeaderName::from_str(REPLY_TO_HEADER_NAME))
-                                {
-                                    let payload = std::str::from_utf8(&frame.body).unwrap();
-                                    let response = BrokerResponse::Message {
-                                        subject: consumer.subject.clone(),
-                                        payload: payload.to_string(),
-                                        reply_to: reply_to.to_string(),
-                                    };
-                                    if consumer.sender.unbounded_send(response).is_err() {
-                                        error!("failed sending broker message to channel!");
-                                    };
-                                } else {
-                                error!("reply_to header missing on message!");
-                            }
-                        },
-                        None => {
-                            error!("missing consumer for message frame [{}]", subscription_id);
+            match self
+                .subscription_id_to_consumer_id_lookup
+                .lock()
+                .unwrap()
+                .get(subscription_id)
+            {
+                Some(consumer_id) => match self.consumers.lock().unwrap().get(consumer_id) {
+                    Some(consumer) => {
+                        if let Some(reply_to) = frame
+                            .headers
+                            .get(HeaderName::from_str(REPLY_TO_HEADER_NAME))
+                        {
+                            let payload = std::str::from_utf8(&frame.body).unwrap();
+                            let response = BrokerResponse::Message {
+                                subject: consumer.subject.clone(),
+                                payload: payload.to_string(),
+                                reply_to: reply_to.to_string(),
+                            };
+                            if consumer.sender.unbounded_send(response).is_err() {
+                                error!("failed sending broker message to channel!");
+                            };
+                        } else {
+                            error!("reply_to header missing on message!");
                         }
                     }
-                }
+                    None => {
+                        error!("missing consumer for message frame [{}]", subscription_id);
+                    }
+                },
                 None => {
                     error!("missing consumer for message frame [{}]", subscription_id);
                 }
@@ -269,16 +308,17 @@ impl Future for BrokerSession {
                 destination: _destination,
                 ack_mode: _ack_mode,
                 frame,
-            } => {
-                self.on_message(frame)
-            }
+            } => self.on_message(frame),
 
             SessionEvent::Error(frame) => {
                 error!("session error event: {}", frame);
             }
 
             SessionEvent::Disconnected(reason) => {
-                warn!("session [{}] disconnected due to [{:?}]", self.session_number, reason);
+                warn!(
+                    "session [{}] disconnected due to [{:?}]",
+                    self.session_number, reason
+                );
                 return Ok(Async::Ready(()));
             }
 

@@ -1,11 +1,11 @@
+use bytes::BytesMut;
+use futures::prelude::*;
 use std::io::Error as IoError;
 use std::str;
-use bytes::BytesMut;
-use tokio_io::codec::{Encoder, Decoder};
-use futures::prelude::*;
+use tokio_io::codec::{Decoder, Encoder};
 
-use super::header::{Header, HeaderName, HeaderList, CONTENT_LENGTH};
 use super::frame::{Command, Frame, Transmission};
+use super::header::{Header, HeaderList, HeaderName, CONTENT_LENGTH};
 
 macro_rules! opt_nr {
     ($opt: expr) => {
@@ -93,7 +93,10 @@ fn parse_header(src: &[u8]) -> Poll<Header, ParseError> {
     let key = opt_nr!(parts.next());
     let value = opt_nr!(parts.next());
 
-    Ok(Async::Ready(Header::new(HeaderName::from_str(key), &Header::decode_value(value))))
+    Ok(Async::Ready(Header::new(
+        HeaderName::from_str(key),
+        &Header::decode_value(value),
+    )))
 }
 
 fn parse_command(src: &[u8]) -> Result<Command, ParseError> {

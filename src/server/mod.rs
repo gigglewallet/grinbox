@@ -4,6 +4,7 @@ use futures::{
     sync::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
     Future, Stream,
 };
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -279,7 +280,9 @@ impl AsyncServer {
             return AsyncServer::error(GrinboxError::InvalidSignature);
         }
 
-        if to_address.port == self.grinrelay_port && self.grinrelay_domain.ends_with(to_address.domain.as_str()) {
+        if to_address.port == self.grinrelay_port
+            && self.grinrelay_domain.ends_with(to_address.domain.as_str())
+        {
             let signed_payload = SignedPayload {
                 str,
                 challenge: challenge_raw.to_string(),

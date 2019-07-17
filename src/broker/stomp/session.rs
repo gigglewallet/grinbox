@@ -1,3 +1,4 @@
+use futures::*;
 use std::collections::hash_map::HashMap;
 use std::collections::VecDeque;
 use std::io::Error as IoError;
@@ -6,20 +7,19 @@ use std::io::Result;
 use std::time::{Duration, Instant};
 use tokio_codec::Decoder;
 use tokio_codec::Framed;
-use tokio_io::{AsyncWrite, AsyncRead};
+use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_timer::Delay;
-use futures::*;
 
-use super::connection::{self, select_heartbeat};
-use super::subscription::{AckMode, AckOrNack, Subscription};
-use super::frame::{Frame, Command, ToFrameBody};
-use super::frame::Transmission::{self, HeartBeat, CompleteFrame};
-use super::header::*;
-use super::transaction::Transaction;
-use super::session_builder::SessionConfig;
-use super::message_builder::MessageBuilder;
-use super::subscription_builder::SubscriptionBuilder;
 use super::codec::Codec;
+use super::connection::{self, select_heartbeat};
+use super::frame::Transmission::{self, CompleteFrame, HeartBeat};
+use super::frame::{Command, Frame, ToFrameBody};
+use super::header::*;
+use super::message_builder::MessageBuilder;
+use super::session_builder::SessionConfig;
+use super::subscription::{AckMode, AckOrNack, Subscription};
+use super::subscription_builder::SubscriptionBuilder;
+use super::transaction::Transaction;
 
 const GRACE_PERIOD_MULTIPLIER: f32 = 2.0;
 
@@ -101,8 +101,8 @@ impl SessionState {
 
 // *** Public API ***
 impl<T> Session<T>
-    where
-        T: AsyncWrite + AsyncRead + Send + 'static,
+where
+    T: AsyncWrite + AsyncRead + Send + 'static,
 {
     pub fn send_frame(&mut self, fr: Frame) {
         self.send(Transmission::CompleteFrame(fr))
@@ -156,8 +156,8 @@ pub type ConnectFuture<T> = Box<Future<Item = T, Error = IoError> + Send>;
 
 // *** pub(crate) API ***
 impl<T> Session<T>
-    where
-        T: AsyncWrite + AsyncRead + Send + 'static,
+where
+    T: AsyncWrite + AsyncRead + Send + 'static,
 {
     pub(crate) fn new(config: SessionConfig, stream: ConnectFuture<T>) -> Self {
         Self {
@@ -196,8 +196,8 @@ pub struct Session<T> {
 
 // *** Internal API ***
 impl<T> Session<T>
-    where
-        T: AsyncWrite + AsyncRead + Send + 'static,
+where
+    T: AsyncWrite + AsyncRead + Send + 'static,
 {
     fn _send(&mut self, tx: Transmission) -> Result<()> {
         if let StreamState::Connected(ref mut st) = self.stream {
@@ -453,8 +453,8 @@ pub(crate) enum StreamState<T> {
 }
 
 impl<T> Stream for Session<T>
-    where
-        T: AsyncWrite + AsyncRead + Send + 'static,
+where
+    T: AsyncWrite + AsyncRead + Send + 'static,
 {
     type Item = SessionEvent;
     type Error = IoError;

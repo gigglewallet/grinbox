@@ -1,6 +1,4 @@
-extern crate ring;
-
-use self::ring::{aead, digest, pbkdf2};
+use ring::{aead, digest, pbkdf2};
 
 use crate::error::{ErrorKind, Result};
 use crate::types::GrinboxAddress;

@@ -1,9 +1,11 @@
-use std::str::from_utf8;
-use std::fmt;
-use std::fmt::Formatter;
+#![macro_use]
+
 use bytes::BytesMut;
 use rustc_serialize::hex::ToHex;
 use serde::{Serialize, Serializer};
+use std::fmt;
+use std::fmt::Formatter;
+use std::str::from_utf8;
 
 use super::header::*;
 use super::subscription::AckMode;
@@ -26,6 +28,20 @@ pub enum Command {
     Receipt,
     Error,
 }
+
+#[macro_export]
+macro_rules! header_list [
+  ($($header: expr), *) => ({
+    let header_list = HeaderList::new();
+    $(header_list.push($header);)*
+    header_list
+  });
+  ($($key:expr => $value: expr), *) => ({
+    let mut header_list = HeaderList::new();
+    $(header_list.push(Header::new($key, $value));)*
+    header_list
+  })
+];
 
 impl Command {
     pub fn as_str(&self) -> &'static str {
@@ -89,8 +105,9 @@ pub struct Frame {
 
 /// Serializes `Vec<u8>` to a lowercase hex string.
 pub fn vec_to_hex<T, S>(buffer: &T, serializer: S) -> Result<S::Ok, S::Error>
-    where T: AsRef<[u8]>,
-          S: Serializer
+where
+    T: AsRef<[u8]>,
+    S: Serializer,
 {
     serializer.serialize_str(&buffer.as_ref().to_hex())
 }

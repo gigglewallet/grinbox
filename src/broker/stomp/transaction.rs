@@ -1,7 +1,7 @@
 use super::frame::Frame;
 use super::frame::ToFrameBody;
-use super::message_builder::MessageBuilder;
 use super::header::*;
+use super::message_builder::MessageBuilder;
 use super::session::Session;
 
 pub struct Transaction<'tx, T: 'static> {
@@ -10,8 +10,8 @@ pub struct Transaction<'tx, T: 'static> {
 }
 
 impl<'tx, T: 'static> Transaction<'tx, T>
-    where
-        T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
+where
+    T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
 {
     pub fn new(session: &'tx mut Session<T>) -> Transaction<'tx, T> {
         Transaction {

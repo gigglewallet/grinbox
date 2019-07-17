@@ -1,10 +1,10 @@
-use super::message_builder::MessageBuilder;
-use super::session_builder::SessionBuilder;
-use super::subscription_builder::SubscriptionBuilder;
+use super::connection::{Credentials, HeartBeat, OwnedCredentials};
 use super::header::*;
-use super::connection::{HeartBeat, Credentials, OwnedCredentials};
+use super::message_builder::MessageBuilder;
+use super::session::{GenerateReceipt, ReceiptRequest};
+use super::session_builder::SessionBuilder;
 use super::subscription::AckMode;
-use super::session::{ReceiptRequest, GenerateReceipt};
+use super::subscription_builder::SubscriptionBuilder;
 
 pub trait OptionSetter<T> {
     fn set_option(self, _: T) -> T;
@@ -85,8 +85,8 @@ impl<'a, T> OptionSetter<SubscriptionBuilder<'a, T>> for AckMode {
 }
 
 impl<'a, T> OptionSetter<MessageBuilder<'a, T>> for GenerateReceipt
-    where
-        T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
+where
+    T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
 {
     fn set_option(self, mut builder: MessageBuilder<'a, T>) -> MessageBuilder<'a, T> {
         let next_id = builder.session.generate_receipt_id();
@@ -101,8 +101,8 @@ impl<'a, T> OptionSetter<MessageBuilder<'a, T>> for GenerateReceipt
 }
 
 impl<'a, T> OptionSetter<SubscriptionBuilder<'a, T>> for GenerateReceipt
-    where
-        T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
+where
+    T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
 {
     fn set_option(self, mut builder: SubscriptionBuilder<'a, T>) -> SubscriptionBuilder<'a, T> {
         let next_id = builder.session.generate_receipt_id();

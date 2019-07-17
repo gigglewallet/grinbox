@@ -1,6 +1,6 @@
-use super::option_setter::OptionSetter;
 use super::connection::{HeartBeat, OwnedCredentials};
 use super::header::*;
+use super::option_setter::OptionSetter;
 use super::session::{ConnectFuture, Session};
 
 #[derive(Clone)]
@@ -28,17 +28,16 @@ impl SessionBuilder {
     }
 
     pub fn build<T>(self, conn: ConnectFuture<T>) -> Session<T>
-        where
-            T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
+    where
+        T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
     {
         Session::new(self.config, conn)
     }
 
     pub fn with<'b, O>(self, option_setter: O) -> SessionBuilder
-        where
-            O: OptionSetter<SessionBuilder>,
+    where
+        O: OptionSetter<SessionBuilder>,
     {
         option_setter.set_option(self)
     }
 }
-

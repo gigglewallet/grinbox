@@ -1,12 +1,10 @@
-extern crate grin_wallet_libwallet;
-
 mod grinbox_address;
 mod grinbox_message;
 mod grinbox_request;
 mod grinbox_response;
 mod tx_proof;
 
-pub use self::grin_wallet_libwallet::Slate;
+pub use grin_wallet_libwallet::Slate;
 pub use parking_lot::{Mutex, MutexGuard};
 pub use std::sync::Arc;
 

@@ -1,12 +1,8 @@
 // Non-camel case types are used for Stomp Protocol version enum variants
-#![macro_use]
-extern crate serde;
-
-use self::serde::Serialize;
+use serde::Serialize;
 use std;
 use std::slice::Iter;
 use unicode_segmentation::UnicodeSegmentation;
-
 
 // Ideally this would be a simple typedef. However:
 // See Rust bug #11047: https://github.com/mozilla/rust/issues/11047
@@ -39,8 +35,8 @@ impl HeaderList {
     }
 
     pub fn drain<F>(&mut self, mut sink: F)
-        where
-            F: FnMut(Header),
+    where
+        F: FnMut(Header),
     {
         while let Some(header) = self.headers.pop() {
             sink(header);
@@ -55,8 +51,8 @@ impl HeaderList {
     }
 
     pub fn retain<F>(&mut self, test: F)
-        where
-            F: Fn(&Header) -> bool,
+    where
+        F: Fn(&Header) -> bool,
     {
         self.headers.retain(test)
     }
@@ -251,20 +247,6 @@ impl HeaderList {
         Some((spec_list[0], spec_list[1]))
     }
 }
-
-#[macro_export]
-macro_rules! header_list [
-  ($($header: expr), *) => ({
-    let header_list = HeaderList::new();
-    $(header_list.push($header);)*
-    header_list
-  });
-  ($($key:expr => $value: expr), *) => ({
-    let mut header_list = HeaderList::new();
-    $(header_list.push(Header::new($key, $value));)*
-    header_list
-  })
-];
 
 #[cfg(test)]
 mod test {

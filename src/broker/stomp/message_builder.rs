@@ -1,6 +1,6 @@
-use super::session::{Session, ReceiptRequest, OutstandingReceipt};
 use super::frame::Frame;
 use super::option_setter::OptionSetter;
+use super::session::{OutstandingReceipt, ReceiptRequest, Session};
 
 pub struct MessageBuilder<'a, T: 'static> {
     pub session: &'a mut Session<T>,
@@ -9,8 +9,8 @@ pub struct MessageBuilder<'a, T: 'static> {
 }
 
 impl<'a, T> MessageBuilder<'a, T>
-    where
-        T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
+where
+    T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
 {
     pub fn new(session: &'a mut Session<T>, frame: Frame) -> Self {
         MessageBuilder {
@@ -32,10 +32,9 @@ impl<'a, T> MessageBuilder<'a, T>
     }
 
     pub fn with<O>(self, option_setter: O) -> MessageBuilder<'a, T>
-        where
-            O: OptionSetter<MessageBuilder<'a, T>>,
+    where
+        O: OptionSetter<MessageBuilder<'a, T>>,
     {
         option_setter.set_option(self)
     }
 }
-

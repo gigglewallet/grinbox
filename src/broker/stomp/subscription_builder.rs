@@ -1,8 +1,8 @@
-use super::session::{Session, ReceiptRequest, OutstandingReceipt};
-use super::subscription::{Subscription, AckMode};
 use super::frame::Frame;
 use super::header::HeaderList;
 use super::option_setter::OptionSetter;
+use super::session::{OutstandingReceipt, ReceiptRequest, Session};
+use super::subscription::{AckMode, Subscription};
 
 pub struct SubscriptionBuilder<'a, T: 'static> {
     pub session: &'a mut Session<T>,
@@ -13,8 +13,8 @@ pub struct SubscriptionBuilder<'a, T: 'static> {
 }
 
 impl<'a, T> SubscriptionBuilder<'a, T>
-    where
-        T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
+where
+    T: tokio_io::AsyncWrite + tokio_io::AsyncRead + Send + 'static,
 {
     pub fn new(session: &'a mut Session<T>, destination: String) -> Self {
         SubscriptionBuilder {
@@ -62,8 +62,8 @@ impl<'a, T> SubscriptionBuilder<'a, T>
     }
 
     pub fn with<O>(self, option_setter: O) -> SubscriptionBuilder<'a, T>
-        where
-            O: OptionSetter<SubscriptionBuilder<'a, T>>,
+    where
+        O: OptionSetter<SubscriptionBuilder<'a, T>>,
     {
         option_setter.set_option(self)
     }
