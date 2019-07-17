@@ -1,3 +1,5 @@
+extern crate serde;
+
 use std::collections::hash_map::HashMap;
 use std::collections::VecDeque;
 use std::io::Error as IoError;
@@ -467,7 +469,7 @@ impl<T> Stream for Session<T>
                     self.on_recv_data()?;
                 }
                 CompleteFrame(frame) => {
-                    debug!("Received frame: {:?}", frame);
+                    debug!("Received frame: {}", serde_json::to_string(&frame).unwrap());
                     self.on_recv_data()?;
                     match frame.command {
                         Command::Error => self.events.push_back(SessionEvent::Error(frame)),

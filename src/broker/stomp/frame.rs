@@ -1,12 +1,17 @@
+extern crate rustc_serialize;
+extern crate serde;
+
 use std::str::from_utf8;
 use std::fmt;
 use std::fmt::Formatter;
 use bytes::BytesMut;
+use self::rustc_serialize::hex::ToHex;
+use self::serde::{Serialize, Serializer};
 
 use super::header::*;
 use super::subscription::AckMode;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize)]
 pub enum Command {
     Send,
     Subscribe,
@@ -77,11 +82,20 @@ impl ToFrameBody for String {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Frame {
     pub command: Command,
     pub headers: HeaderList,
+    #[serde(serialize_with = "vec_to_hex")]
     pub body: Vec<u8>,
+}
+
+/// Serializes `Vec<u8>` to a lowercase hex string.
+pub fn vec_to_hex<T, S>(buffer: &T, serializer: S) -> Result<S::Ok, S::Error>
+    where T: AsRef<[u8]>,
+          S: Serializer
+{
+    serializer.serialize_str(&buffer.as_ref().to_hex())
 }
 
 #[derive(Debug)]

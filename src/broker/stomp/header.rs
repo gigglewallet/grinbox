@@ -1,13 +1,17 @@
 // Non-camel case types are used for Stomp Protocol version enum variants
 #![macro_use]
+extern crate serde;
+
+use self::serde::Serialize;
 use std;
 use std::slice::Iter;
 use unicode_segmentation::UnicodeSegmentation;
 
+
 // Ideally this would be a simple typedef. However:
 // See Rust bug #11047: https://github.com/mozilla/rust/issues/11047
 // Cannot call static methods (`with_capacity`) on type aliases (`HeaderList`)
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct HeaderList {
     pub headers: Vec<Header>,
 }
@@ -59,7 +63,7 @@ impl HeaderList {
 }
 
 pub struct SuppressedHeader<'a>(pub &'a str);
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Header(pub HeaderName, pub String);
 
 impl Header {
@@ -99,7 +103,7 @@ impl Header {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize)]
 pub struct HeaderName {
     inner: Repr<Custom>,
 }
@@ -120,14 +124,14 @@ impl HeaderName {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize)]
 enum Repr<T> {
     Standard(StandardHeader),
     Custom(T),
 }
 
 // Used to hijack the Hash impl
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize)]
 struct Custom(String);
 
 macro_rules! standard_headers {
@@ -137,7 +141,7 @@ macro_rules! standard_headers {
             ($konst:ident, $upcase:ident, $name:expr);
         )+
     ) => {
-        #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+        #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize)]
         enum StandardHeader {
             $(
                 $konst,
