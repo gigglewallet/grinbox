@@ -7,7 +7,7 @@ use super::subscription::AckMode;
 use super::session::{ReceiptRequest, GenerateReceipt};
 
 pub trait OptionSetter<T> {
-    fn set_option(self, T) -> T;
+    fn set_option(self, _: T) -> T;
 }
 
 impl<'a, T> OptionSetter<MessageBuilder<'a, T>> for Header {

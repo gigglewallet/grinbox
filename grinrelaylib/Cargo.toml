@@ -2,11 +2,11 @@
 name = "grinrelaylib"
 version = "1.0.1"
 authors = ["vault713 devs and giggle devs"]
+edition = "2018"
 description = "A library that encapsulates grinrelay integration."
 keywords = [ "grinrelay", "vault713", "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle" ]
 license = "Apache-2.0"
 readme = "README.md"
-edition = "2018"
 
 [dependencies]
 colored = "1.7"

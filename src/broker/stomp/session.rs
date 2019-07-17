@@ -1,5 +1,3 @@
-extern crate serde;
-
 use std::collections::hash_map::HashMap;
 use std::collections::VecDeque;
 use std::io::Error as IoError;
@@ -268,7 +266,7 @@ impl<T> Session<T>
                     "Using provided credentials: login '{}', passcode '{}'",
                     credentials.login, credentials.passcode
                 );
-                let mut headers = &mut self.config.headers;
+                let headers = &mut self.config.headers;
                 headers.push(Header::new(LOGIN, &credentials.login));
                 headers.push(Header::new(PASSCODE, &credentials.passcode));
             }

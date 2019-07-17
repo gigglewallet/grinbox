@@ -1,12 +1,9 @@
-extern crate rustc_serialize;
-extern crate serde;
-
 use std::str::from_utf8;
 use std::fmt;
 use std::fmt::Formatter;
 use bytes::BytesMut;
-use self::rustc_serialize::hex::ToHex;
-use self::serde::{Serialize, Serializer};
+use rustc_serialize::hex::ToHex;
+use serde::{Serialize, Serializer};
 
 use super::header::*;
 use super::subscription::AckMode;

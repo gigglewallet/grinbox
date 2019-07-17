@@ -2,6 +2,7 @@
 name = "grinrelay"
 version = "0.1.0"
 authors = ["vault713 devs and giggle devs"]
+edition = "2018"
 description = "A slate relay service for Grin."
 keywords = [ "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle", "vault713" ]
 license = "Apache-2.0"

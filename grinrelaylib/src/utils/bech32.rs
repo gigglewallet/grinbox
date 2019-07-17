@@ -143,7 +143,8 @@ impl Bech32 {
             Err(e) => return Err(CodingError::Address(AddressError::Conversion(e))),
         };
 
-        combined.extend_from_slice(&create_checksum(&hrp_bytes, &combined));
+        let pure_data = combined.clone();
+        combined.extend_from_slice(&create_checksum(&hrp_bytes, &pure_data));
         let mut encoded: String = String::with_capacity(128);
         encoded.push_str(format!("{}{}", self.hrp, SEP).as_str());
         let start_pos = encoded.len();
@@ -161,7 +162,8 @@ impl Bech32 {
             }
 
             if encoded.len() > start_pos + 16 {
-                encoded.insert_str(encoded.len() - 6, "-");
+                let insert_pos = encoded.len() - 6;
+                encoded.insert_str(insert_pos, "-");
             }
 
             if encoded.len() >= start_pos + 62 {

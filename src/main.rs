@@ -25,8 +25,8 @@ extern crate grinrelaylib;
 mod broker;
 mod server;
 
-use broker::Broker;
-use server::AsyncServer;
+use crate::broker::Broker;
+use crate::server::AsyncServer;
 use std::net::ToSocketAddrs;
 use grinrelaylib::types::{ChainTypes, set_running_mode};
 
