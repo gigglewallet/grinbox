@@ -72,7 +72,7 @@ impl AddrBech32<PublicKey> for PublicKey {
             hrp: String::from_utf8_lossy(&hrp_bytes).into_owned(),
             data: serialize_public_key(self),
         };
-        b.to_string(false).unwrap()
+        b.to_string(true).unwrap()
     }
 }
 

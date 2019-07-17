@@ -163,6 +163,11 @@ impl Bech32 {
             if encoded.len() > start_pos + 16 {
                 encoded.insert_str(encoded.len() - 6, "-");
             }
+
+            if encoded.len() >= start_pos + 62 {
+                encoded.insert_str(start_pos + 40, "-");
+                encoded.insert_str(start_pos + 25, "-");
+            }
         }
 
         Ok(encoded)
@@ -416,7 +421,7 @@ mod tests {
         let encode = a1.to_string(true).unwrap();
         assert_eq!(
             encode,
-            "gn1-z94zqajc-ygd2ngztutaxa0eg28wlqd5d0f6fgdxf6ykgljp24qgls-mstrr5".to_string()
+            "gn1-z94zqajc-ygd2ngztutaxa0e-g28wlqd5d0f6fgd-xf6ykgljp24qgls-mstrr5".to_string()
         );
 
         let decode = Bech32::from_string(encode.as_str()).unwrap();
