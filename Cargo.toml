@@ -30,6 +30,6 @@ tokio-timer = "0.2"
 toml = "0.4"
 unicode-segmentation = "0.1"
 uuid = { version = "0.7", features = ["serde", "v4"] }
-ws = "0.7"
+ws = { version="0.8", features=["ssl"] }
 
 grinrelaylib = { path = "./grinrelaylib" }
