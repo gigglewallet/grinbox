@@ -1,6 +1,6 @@
 [package]
 name = "grinrelay"
-version = "0.1.0"
+version = "1.0.2"
 authors = ["vault713 devs and giggle devs"]
 edition = "2018"
 description = "A slate relay service for Grin."
