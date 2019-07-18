@@ -467,7 +467,7 @@ where
                     self.on_recv_data()?;
                 }
                 CompleteFrame(frame) => {
-                    debug!("Received frame: {}", serde_json::to_string(&frame).unwrap());
+                    debug!("Received frame: {}", serde_json::to_string_pretty(&frame).unwrap());
                     self.on_recv_data()?;
                     match frame.command {
                         Command::Error => self.events.push_back(SessionEvent::Error(frame)),

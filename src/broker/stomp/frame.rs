@@ -171,7 +171,7 @@ impl Frame {
     }
 
     pub fn write(&self, out: &mut BytesMut) {
-        debug!("Sending frame:\n{}", self.to_string());
+        debug!("Sending frame:\n{}", serde_json::to_string_pretty(&self).unwrap());
         out.extend(self.command.as_str().as_bytes());
         out.extend("\n".as_bytes());
 
