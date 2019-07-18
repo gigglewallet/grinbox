@@ -2,6 +2,7 @@
 name = "grinrelay"
 version = "1.0.2"
 authors = ["vault713 devs and giggle devs"]
+build = "src/build/build.rs"
 edition = "2018"
 description = "A slate relay service for Grin."
 keywords = [ "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle", "vault713" ]
@@ -33,3 +34,7 @@ uuid = { version = "0.7", features = ["serde", "v4"] }
 ws = { version="0.8", features=["ssl"] }
 
 grinrelaylib = { path = "./grinrelaylib" }
+
+[build-dependencies]
+built = "0.3"
+
