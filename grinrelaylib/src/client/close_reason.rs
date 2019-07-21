@@ -1,6 +1,6 @@
 use crate::error::Error;
 
 pub enum CloseReason {
-    Normal,
-    Abnormal(Error),
+	Normal,
+	Abnormal(Error),
 }

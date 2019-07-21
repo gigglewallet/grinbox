@@ -9,7 +9,7 @@ pub use parking_lot::{Mutex, MutexGuard};
 pub use std::sync::Arc;
 
 pub use self::grinbox_address::{
-    hrp_bytes, GrinboxAddress, GRINRELAY_ADDRESS_HRP_MAINNET, GRINRELAY_ADDRESS_HRP_TESTNET,
+	hrp_bytes, GrinboxAddress, GRINRELAY_ADDRESS_HRP_MAINNET, GRINRELAY_ADDRESS_HRP_TESTNET,
 };
 pub use self::grinbox_address::{set_running_mode, ChainTypes};
 pub use self::grinbox_message::GrinboxMessage;
