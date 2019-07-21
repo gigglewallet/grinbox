@@ -467,7 +467,7 @@ where
 					self.on_recv_data()?;
 				}
 				CompleteFrame(frame) => {
-					debug!(
+					trace!(
 						"Received frame: {}",
 						serde_json::to_string_pretty(&frame).unwrap()
 					);
