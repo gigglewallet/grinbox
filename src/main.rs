@@ -8,6 +8,7 @@ mod server;
 
 use crate::broker::Broker;
 use crate::server::AsyncServer;
+use colored::*;
 use grinrelaylib::types::{set_running_mode, ChainTypes};
 use std::net::{TcpListener, ToSocketAddrs};
 use std::thread;
@@ -43,10 +44,11 @@ fn main() {
 		.unwrap_or(false);
 
 	let acceptor = if !grinrelay_protocol_unsecure {
-		let cert_file =
-			std::env::var("CERT").unwrap_or("/etc/rabbitmq/tls/server_certificate.pem".to_string());
+		info!("{}", "wss enabled".bright_green());
+		let cert_file = std::env::var("CERT")
+			.unwrap_or("/etc/grinrelay/tls/server_certificate.pem".to_string());
 		let key_file =
-			std::env::var("KEY").unwrap_or("/etc/rabbitmq/tls/server_key.pem".to_string());
+			std::env::var("KEY").unwrap_or("/etc/grinrelay/tls/server_key.pem".to_string());
 
 		let cert = {
 			let data = read_file(cert_file.as_str()).unwrap();
