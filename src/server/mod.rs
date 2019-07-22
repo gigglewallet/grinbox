@@ -12,6 +12,10 @@ use ws::{
 	connect, CloseCode, Handler, Handshake, Message, Request, Response, Result as WsResult, Sender,
 };
 
+use openssl::ssl::{SslAcceptor, SslStream};
+use std::rc::Rc;
+use ws::util::TcpStream;
+
 use grinrelaylib::error::{ErrorKind, Result};
 use grinrelaylib::types::{GrinboxAddress, GrinboxError, GrinboxRequest, GrinboxResponse};
 use grinrelaylib::utils::crypto::{verify_signature, AddrBech32, Hex};
@@ -35,6 +39,7 @@ pub struct AsyncServer {
 	grinrelay_domain: String,
 	grinrelay_port: u16,
 	grinrelay_protocol_unsecure: bool,
+	ssl: Option<Rc<SslAcceptor>>,
 }
 
 pub struct Server {
@@ -75,6 +80,7 @@ impl AsyncServer {
 		grinrelay_domain: &str,
 		grinrelay_port: u16,
 		grinrelay_protocol_unsecure: bool,
+		ssl: Option<Rc<SslAcceptor>>,
 	) -> AsyncServer {
 		let id = Uuid::new_v4().to_string();
 
@@ -92,6 +98,7 @@ impl AsyncServer {
 			grinrelay_domain: grinrelay_domain.to_string(),
 			grinrelay_port,
 			grinrelay_protocol_unsecure,
+			ssl,
 		}
 	}
 
@@ -376,16 +383,6 @@ impl AsyncServer {
 }
 
 impl Handler for AsyncServer {
-	fn on_request(&mut self, req: &Request) -> WsResult<Response> {
-		let res = Response::from_request(req);
-		if let Err(_) = res {
-			let response = Response::new(200, "", vec![]);
-			Ok(response)
-		} else {
-			Ok(res.unwrap())
-		}
-	}
-
 	fn on_open(&mut self, _: Handshake) -> WsResult<()> {
 		info!(
 			"[{}] {}",
@@ -452,5 +449,26 @@ impl Handler for AsyncServer {
 
 	fn on_error(&mut self, err: ws::Error) {
 		error!("the server encountered an error: {:?}", err);
+	}
+
+	fn on_request(&mut self, req: &Request) -> WsResult<Response> {
+		let res = Response::from_request(req);
+		if let Err(_) = res {
+			let response = Response::new(200, "", vec![]);
+			Ok(response)
+		} else {
+			Ok(res.unwrap())
+		}
+	}
+
+	fn upgrade_ssl_server(&mut self, sock: TcpStream) -> ws::Result<SslStream<TcpStream>> {
+		if self.ssl.is_some() {
+			self.ssl.clone().unwrap().accept(sock).map_err(From::from)
+		} else {
+			Err(ws::Error::new(
+				ws::ErrorKind::Internal,
+				"ssl not set up".to_owned(),
+			))?
+		}
 	}
 }

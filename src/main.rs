@@ -12,6 +12,21 @@ use grinrelaylib::types::{set_running_mode, ChainTypes};
 use std::net::{TcpListener, ToSocketAddrs};
 use std::thread;
 
+use std::fs::File;
+use std::io::Read;
+use std::rc::Rc;
+
+use openssl::pkey::PKey;
+use openssl::ssl::{SslAcceptor, SslMethod};
+use openssl::x509::X509;
+
+fn read_file(name: &str) -> std::io::Result<Vec<u8>> {
+	let mut file = File::open(name)?;
+	let mut buf = Vec::new();
+	file.read_to_end(&mut buf)?;
+	Ok(buf)
+}
+
 fn main() {
 	env_logger::init();
 
@@ -23,6 +38,37 @@ fn main() {
 		.unwrap()
 		.next();
 
+	let grinrelay_protocol_unsecure = std::env::var("GRINRELAY_PROTOCOL_UNSECURE")
+		.map(|_| true)
+		.unwrap_or(false);
+
+	let acceptor = if !grinrelay_protocol_unsecure {
+		let cert_file =
+			std::env::var("CERT").unwrap_or("/etc/rabbitmq/tls/server_certificate.pem".to_string());
+		let key_file =
+			std::env::var("KEY").unwrap_or("/etc/rabbitmq/tls/server_key.pem".to_string());
+
+		let cert = {
+			let data = read_file(cert_file.as_str()).unwrap();
+			X509::from_pem(data.as_ref()).unwrap()
+		};
+
+		let pkey = {
+			let data = read_file(key_file.as_str()).unwrap();
+			PKey::private_key_from_pem(data.as_ref()).unwrap()
+		};
+
+		Some(Rc::new({
+			let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+			builder.set_private_key(&pkey).unwrap();
+			builder.set_certificate(&cert).unwrap();
+
+			builder.build()
+		}))
+	} else {
+		None
+	};
+
 	let username = std::env::var("BROKER_USERNAME").unwrap_or("guest".to_string());
 	let password = std::env::var("BROKER_PASSWORD").unwrap_or("guest".to_string());
 
@@ -30,9 +76,6 @@ fn main() {
 	let grinrelay_port = std::env::var("GRINRELAY_PORT").unwrap_or("13420".to_string());
 	let grinrelay_port =
 		u16::from_str_radix(&grinrelay_port, 10).expect("invalid GRINRELAY_PORT given!");
-	let grinrelay_protocol_unsecure = std::env::var("GRINRELAY_PROTOCOL_UNSECURE")
-		.map(|_| true)
-		.unwrap_or(false);
 
 	let is_mainnet = std::env::var("GRINRELAY_IS_MAINNET")
 		.map(|_| true)
@@ -73,7 +116,11 @@ fn main() {
 	});
 
 	ws::Builder::new()
-		.build(|out| {
+		.with_settings(ws::Settings {
+			encrypt_server: !grinrelay_protocol_unsecure,
+			..ws::Settings::default()
+		})
+		.build(|out: ws::Sender| {
 			AsyncServer::new(
 				out,
 				sender.clone(),
@@ -81,6 +128,7 @@ fn main() {
 				&grinrelay_domain,
 				grinrelay_port,
 				grinrelay_protocol_unsecure,
+				acceptor.clone(),
 			)
 		})
 		.unwrap()
