@@ -10,6 +10,7 @@ use crate::broker::Broker;
 use crate::server::AsyncServer;
 use grinrelaylib::types::{set_running_mode, ChainTypes};
 use std::net::{TcpListener, ToSocketAddrs};
+use std::thread;
 
 fn main() {
 	env_logger::init();
@@ -59,7 +60,7 @@ fn main() {
 	let sender = broker.start().expect("failed initiating broker session");
 	let response_handlers_sender = AsyncServer::init();
 
-	{
+	thread::spawn(|| {
 		// for server selection service only
 		let listener = TcpListener::bind("0.0.0.0:3419").unwrap();
 
@@ -69,7 +70,7 @@ fn main() {
 				trace!("server selection from {}", stream.peer_addr().unwrap());
 			}
 		}
-	}
+	});
 
 	ws::Builder::new()
 		.build(|out| {
