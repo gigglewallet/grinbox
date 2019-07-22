@@ -9,14 +9,12 @@ mod server;
 use crate::broker::Broker;
 use crate::server::AsyncServer;
 use grinrelaylib::types::{set_running_mode, ChainTypes};
-use std::net::ToSocketAddrs;
-use std::thread;
-use ws::listen;
+use std::net::{TcpListener, ToSocketAddrs};
 
 fn main() {
 	env_logger::init();
 
-	info!("hello, world!");
+	info!("hello, world! let's serve for a much easier transaction :-)");
 
 	let broker_uri = std::env::var("BROKER_URI")
 		.unwrap_or_else(|_| "127.0.0.1:61613".to_string())
@@ -63,7 +61,14 @@ fn main() {
 
 	{
 		// for server selection service only
-		thread::spawn(|| listen("0.0.0.0:3419", |out| move |_| out.send("OK")).unwrap());
+		let listener = TcpListener::bind("0.0.0.0:3419").unwrap();
+
+		// accept connections and process them serially
+		for stream in listener.incoming() {
+			if let Ok(stream) = stream {
+				trace!("server selection from {}", stream.peer_addr().unwrap());
+			}
+		}
 	}
 
 	ws::Builder::new()
