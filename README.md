@@ -6,6 +6,10 @@
 
 * **Your IP is your responsibility.** When you communicate with a grinbox relay, you are exposing your IP to the relay. You can obfuscate your real IP address using services such as a VPN and/or TOR or i2p.
 
+## Documents
+
+https://github.com/gigglewallet/grinrelay/wiki
+
 ## Credits
 
 The code is based on the [Vault713 Grinbox](https://github.com/vault713/grinbox).
