@@ -364,10 +364,10 @@ impl AsyncServer {
 						kind: _,
 						description: _,
 					} => {
-						sender.close(CloseCode::Abnormal).is_ok();
+						let _ = sender.close(CloseCode::Abnormal);
 					}
 					GrinboxResponse::Ok => {
-						sender.close(CloseCode::Normal).is_ok();
+						let _ = sender.close(CloseCode::Normal);
 					}
 					_ => {}
 				}
