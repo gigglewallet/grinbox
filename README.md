@@ -1,10 +1,18 @@
 # Grin Relay Service of Giggle Wallet
 
+## Bech32 address
+
+https://github.com/gigglewallet/grinrelay/wiki/Bech32-Grin-Relay-Address
+
 ## Privacy considerations
 
 * **The relay does not store data.** Grinbox does not store any data on completed transactions by design, but it would be possible for a modified version of a relay to do so and as a result build a graph of activity between addresses. Federation means that a relay only sees transactions related to its own users.
 
 * **Your IP is your responsibility.** When you communicate with a grinbox relay, you are exposing your IP to the relay. You can obfuscate your real IP address using services such as a VPN and/or TOR or i2p.
+
+## Documents
+
+https://github.com/gigglewallet/grinrelay/wiki
 
 ## Credits
 
