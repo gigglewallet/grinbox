@@ -29,14 +29,21 @@ pub struct Broker {
 	address: SocketAddr,
 	username: String,
 	password: String,
+	consumers: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl Broker {
-	pub fn new(address: SocketAddr, username: String, password: String) -> Broker {
+	pub fn new(
+		address: SocketAddr,
+		username: String,
+		password: String,
+		consumers: Arc<Mutex<HashMap<String, String>>>,
+	) -> Broker {
 		Broker {
 			address,
 			username,
 			password,
+			consumers,
 		}
 	}
 
@@ -45,6 +52,7 @@ impl Broker {
 		let address = self.address.clone();
 		let username = self.username.clone();
 		let password = self.password.clone();
+		let consumers = self.consumers.clone();
 		std::thread::spawn(move || {
 			let tcp_stream = Box::new(TcpStream::connect(&address));
 
@@ -59,6 +67,7 @@ impl Broker {
 				consumers: Arc::new(Mutex::new(HashMap::new())),
 				subject_to_consumer_id_lookup: Arc::new(Mutex::new(HashMap::new())),
 				subscription_id_to_consumer_id_lookup: Arc::new(Mutex::new(HashMap::new())),
+				consumer_shortname_to_subject_loopup: consumers,
 			};
 
 			let mut session_clone = session.clone();
@@ -135,6 +144,7 @@ struct BrokerSession {
 	consumers: Arc<Mutex<HashMap<String, Consumer>>>,
 	subject_to_consumer_id_lookup: Arc<Mutex<HashMap<String, String>>>,
 	subscription_id_to_consumer_id_lookup: Arc<Mutex<HashMap<String, String>>>,
+	consumer_shortname_to_subject_loopup: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl BrokerSession {
@@ -220,7 +230,24 @@ impl BrokerSession {
 		reply_to: &str,
 		message_expiration_in_seconds: Option<u32>,
 	) {
-		let destination = format!("/queue/{}", subject);
+		info!("terryzhao: {}", subject);
+
+		let mut destination = format!("/queue/{}", subject);;
+
+		if !subject.starts_with("gn1") && !subject.starts_with("tn1") && (subject.len() == 6) {
+			let fullname = self
+				.consumer_shortname_to_subject_loopup
+				.lock()
+				.unwrap()
+				.get(subject)
+				.cloned()
+				.unwrap();
+
+			if fullname.starts_with("gn1") || fullname.starts_with("tn1") {
+				destination = format!("/queue/{}", fullname);
+			}
+		}
+
 		let message_expiration = match message_expiration_in_seconds {
 			Some(message_expiration_in_seconds @ 1...86400) => {
 				format!("{}", message_expiration_in_seconds * 1000)
