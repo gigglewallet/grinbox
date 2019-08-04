@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
 
@@ -46,62 +48,68 @@ impl Broker {
 		let username = self.username.clone();
 		let password = self.password.clone();
 		std::thread::spawn(move || {
-			let tcp_stream = Box::new(TcpStream::connect(&address));
+			let address = address.clone();
+			let username = username.clone();
+			let password = password.clone();
+			std::thread::spawn(move || {
+				let tcp_stream = Box::new(TcpStream::connect(&address));
 
-			let session = SessionBuilder::new()
-				.with(Credentials(&username, &password))
-				.with(HeartBeat(10000, 10000))
-				.build(tcp_stream);
+				let session = SessionBuilder::new()
+					.with(Credentials(&username, &password))
+					.with(HeartBeat(10000, 10000))
+					.build(tcp_stream);
 
-			let session = BrokerSession {
-				session: Arc::new(Mutex::new(session)),
-				session_number: 0,
-				consumers: Arc::new(Mutex::new(HashMap::new())),
-				subject_to_consumer_id_lookup: Arc::new(Mutex::new(HashMap::new())),
-				subscription_id_to_consumer_id_lookup: Arc::new(Mutex::new(HashMap::new())),
-			};
+				let session = BrokerSession {
+					session: Arc::new(Mutex::new(session)),
+					session_number: 0,
+					consumers: Arc::new(Mutex::new(HashMap::new())),
+					subject_to_consumer_id_lookup: Arc::new(Mutex::new(HashMap::new())),
+					subscription_id_to_consumer_id_lookup: Arc::new(Mutex::new(HashMap::new())),
+				};
 
-			let mut session_clone = session.clone();
+				let mut session_clone = session.clone();
 
-			let request_loop = rx
-				.for_each(move |request| {
-					match request {
-						BrokerRequest::Subscribe {
-							id,
-							subject,
-							response_sender,
-						} => {
-							session_clone.subscribe(id, subject.clone(), response_sender.clone());
-						}
-						BrokerRequest::Unsubscribe { id } => {
-							session_clone.unsubscribe(&id);
-						}
-						BrokerRequest::PostMessage {
-							subject,
-							payload,
-							reply_to,
-							message_expiration_in_seconds,
-						} => {
-							session_clone.publish(
-								&subject,
-								&payload,
-								&reply_to,
+				let request_loop = rx
+					.for_each(move |request| {
+						match request {
+							BrokerRequest::Subscribe {
+								id,
+								subject,
+								response_sender,
+							} => {
+								session_clone.subscribe(
+									id,
+									subject.clone(),
+									response_sender.clone(),
+								);
+							}
+							BrokerRequest::Unsubscribe { id } => {
+								session_clone.unsubscribe(&id);
+							}
+							BrokerRequest::PostMessage {
+								subject,
+								payload,
+								reply_to,
 								message_expiration_in_seconds,
-							);
+							} => {
+								session_clone.publish(
+									&subject,
+									&payload,
+									&reply_to,
+									message_expiration_in_seconds,
+								);
+							}
 						}
-					}
-					Ok(())
-				})
-				.map_err(|()| std::io::Error::new(std::io::ErrorKind::Other, ""));
+						Ok(())
+					})
+					.map_err(|()| std::io::Error::new(std::io::ErrorKind::Other, ""));
 
-			let f = session.select(request_loop).map_err(|_| {}).map(|_| {});
+				let f = session.select(request_loop).map_err(|_| {}).map(|_| {});
 
-			tokio::run(f);
-
-			error!("broker thread ending!");
-
-			// TODO: attempt reconnection and re-establishment of subscriptions?
-			std::process::exit(1);
+				tokio::run(f);
+				error!("broker thread end! attempting reconnect and re-establish subscriptions");
+			});
+			thread::sleep(Duration::from_millis(1000));
 		});
 
 		Ok(tx)
