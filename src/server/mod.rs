@@ -200,7 +200,7 @@ impl AsyncServer {
 						.nats_sender
 						.unbounded_send(BrokerRequest::Subscribe {
 							id: self.id.clone(),
-							subject: address.clone(),
+							subject: "/queue/".to_owned() + &address.clone(),
 							response_sender: res_tx,
 						})
 						.is_err()
