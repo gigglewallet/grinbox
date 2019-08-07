@@ -131,10 +131,40 @@ pub fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, String>>>) {
 	});
 }
 
+// include build information
+pub mod built_info {
+	include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+pub fn info_strings() -> (String, String) {
+	(
+		format!(
+			"This is Grin version {}{}, built for {} by {}.",
+			built_info::PKG_VERSION,
+			built_info::GIT_VERSION.map_or_else(|| "".to_owned(), |v| format!(" (git {})", v)),
+			built_info::TARGET,
+			built_info::RUSTC_VERSION,
+		)
+		.to_string(),
+		format!(
+			"Built with profile \"{}\", features \"{}\".",
+			built_info::PROFILE,
+			built_info::FEATURES_STR,
+		)
+		.to_string(),
+	)
+}
+
+fn log_build_info() {
+	let (basic_info, detailed_info) = info_strings();
+	info!("{}", basic_info);
+	debug!("{}", detailed_info);
+}
+
 fn main() {
 	env_logger::init();
 
-	info!("hello, world! let's serve for a much easier transaction :-)");
+	log_build_info();
 
 	let broker_uri = std::env::var("BROKER_URI")
 		.unwrap_or_else(|_| "127.0.0.1:61613".to_string())
@@ -154,12 +184,12 @@ fn main() {
 			std::env::var("KEY").unwrap_or("/etc/grinrelay/tls/server_key.pem".to_string());
 
 		let cert = {
-			let data = read_file(cert_file.as_str()).unwrap();
+			let data = read_file(cert_file.as_str()).expect("cert_file not found");
 			X509::from_pem(data.as_ref()).unwrap()
 		};
 
 		let pkey = {
-			let data = read_file(key_file.as_str()).unwrap();
+			let data = read_file(key_file.as_str()).expect("key_file not found");
 			PKey::private_key_from_pem(data.as_ref()).unwrap()
 		};
 
