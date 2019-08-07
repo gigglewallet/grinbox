@@ -7,6 +7,7 @@ use futures::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
+use std::sync::{Arc, Mutex};
 
 use ws::{
 	connect, CloseCode, Handler, Handshake, Message, Request, Response, Result as WsResult, Sender,
@@ -36,6 +37,7 @@ pub struct AsyncServer {
 	nats_sender: UnboundedSender<BrokerRequest>,
 	response_handlers_sender: UnboundedSender<BrokerResponseHandler>,
 	subscriptions: HashMap<String, Subscription>,
+	consumers: Arc<Mutex<HashMap<String, String>>>,
 	grinrelay_domain: String,
 	grinrelay_port: u16,
 	grinrelay_protocol_unsecure: bool,
@@ -81,6 +83,7 @@ impl AsyncServer {
 		grinrelay_port: u16,
 		grinrelay_protocol_unsecure: bool,
 		ssl: Option<Rc<SslAcceptor>>,
+		consumers: Arc<Mutex<HashMap<String, String>>>,
 	) -> AsyncServer {
 		let id = Uuid::new_v4().to_string();
 
@@ -95,6 +98,7 @@ impl AsyncServer {
 			nats_sender,
 			response_handlers_sender,
 			subscriptions: HashMap::new(),
+			consumers: consumers,
 			grinrelay_domain: grinrelay_domain.to_string(),
 			grinrelay_port,
 			grinrelay_protocol_unsecure,
@@ -248,6 +252,27 @@ impl AsyncServer {
 				AsyncServer::ok()
 			}
 			None => AsyncServer::error(GrinboxError::InvalidRequest),
+		}
+	}
+
+	fn retrieve_relay_addr(
+		&self,
+		abbr: String,
+	) -> GrinboxResponse {
+		if abbr.len() == 6 {
+			let lookup = self.consumers.lock().unwrap();
+			if lookup.contains_key(&abbr) {
+				let relay_addr = lookup.get(&abbr).unwrap().clone();
+				info!("relay_addr: {}", relay_addr);
+				GrinboxResponse::RelayAddr {
+					abbr,
+					relay_addr,
+				}
+			} else {
+				AsyncServer::error(GrinboxError::InvalidRelayAbbr)
+			}
+		} else {
+			AsyncServer::error(GrinboxError::InvalidRelayAbbr)
 		}
 	}
 
@@ -414,6 +439,9 @@ impl Handler for AsyncServer {
 				GrinboxRequest::Subscribe { address, signature } => {
 					self.subscribe(address, signature)
 				}
+				GrinboxRequest::RetrieveRelayAddr {
+					abbr,
+				} => self.retrieve_relay_addr(abbr),
 				GrinboxRequest::PostSlate {
 					from,
 					to,

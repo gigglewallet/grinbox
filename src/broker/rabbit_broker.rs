@@ -153,6 +153,8 @@ impl BrokerSession {
 	}
 
 	fn subscribe(&mut self, id: String, subject: String, sender: UnboundedSender<BrokerResponse>) {
+		info!("subscribe: terryzhao: {}", subject);
+
 		self.unsubscribe_by_subject(&subject);
 
 		let subscription_id = self
@@ -230,23 +232,7 @@ impl BrokerSession {
 		reply_to: &str,
 		message_expiration_in_seconds: Option<u32>,
 	) {
-		info!("terryzhao: {}", subject);
-
-		let mut destination = format!("/queue/{}", subject);;
-
-		if !subject.starts_with("gn1") && !subject.starts_with("tn1") && (subject.len() == 6) {
-			let fullname = self
-				.consumer_shortname_to_subject_loopup
-				.lock()
-				.unwrap()
-				.get(subject)
-				.cloned()
-				.unwrap();
-
-			if fullname.starts_with("gn1") || fullname.starts_with("tn1") {
-				destination = format!("/queue/{}", fullname);
-			}
-		}
+		let destination = format!("/queue/{}", subject);;
 
 		let message_expiration = match message_expiration_in_seconds {
 			Some(message_expiration_in_seconds @ 1...86400) => {

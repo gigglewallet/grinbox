@@ -9,6 +9,9 @@ pub enum GrinboxRequest {
 		address: String,
 		signature: String,
 	},
+	RetrieveRelayAddr {
+		abbr: String,
+	},
 	PostSlate {
 		from: String,
 		to: String,
@@ -52,6 +55,14 @@ impl Display for GrinboxRequest {
 				"PostSlate".bright_purple(),
 				from.bright_green(),
 				to.bright_green()
+			),
+			GrinboxRequest::RetrieveRelayAddr {
+				ref abbr,
+			} => write!(
+				f,
+				"{} : {}",
+				"RetrieveRelayAddr".bright_purple(),
+				abbr.bright_green()
 			),
 		}
 	}

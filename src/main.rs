@@ -24,7 +24,6 @@ use openssl::pkey::PKey;
 use openssl::ssl::{SslAcceptor, SslMethod};
 use openssl::x509::X509;
 
-extern crate amqp;
 extern crate env_logger;
 
 use amqp::protocol::basic;
@@ -74,7 +73,7 @@ pub fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, String>>>) {
 			Table::new(),
 		);
 		if bind_result.is_ok() {
-			info!("queue binding succed!");
+			info!("queue bind successfully!");
 		}
 
 		let closure_consumer = move |_chan: &mut Channel,
@@ -93,10 +92,6 @@ pub fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, String>>>) {
 					if !consumers.lock().unwrap().contains_key(&key) {
 						consumers.lock().unwrap().insert(key, queue);
 					}
-
-					for (last6code, full_name) in consumers.lock().unwrap().iter() {
-						info!("consumer created: {}: {}", last6code, full_name);
-					}
 				}
 			}
 
@@ -112,10 +107,6 @@ pub fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, String>>>) {
 					let key = queue.clone().get(61..67).unwrap().to_owned();
 					if consumers.lock().unwrap().contains_key(&key) {
 						consumers.lock().unwrap().remove(&key);
-					}
-
-					for (last6code, full_name) in consumers.lock().unwrap().iter() {
-						info!("consumer deleted: {}: {}", last6code, full_name);
 					}
 				}
 			}
@@ -206,7 +197,9 @@ fn main() {
 	}
 
 	let consumers = Arc::new(Mutex::new(HashMap::new()));
-	rabbit_consumer_monitor(consumers.clone());
+	let rabbit_consumers = consumers.clone();
+	let async_consumers = consumers.clone();
+	rabbit_consumer_monitor(rabbit_consumers);
 
 	let broker_uri = broker_uri.unwrap();
 
@@ -246,6 +239,7 @@ fn main() {
 				grinrelay_port,
 				grinrelay_protocol_unsecure,
 				acceptor.clone(),
+				async_consumers.clone(),
 			)
 		})
 		.unwrap()
