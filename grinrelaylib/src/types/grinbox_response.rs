@@ -67,7 +67,13 @@ impl Display for GrinboxResponse {
 			GrinboxResponse::RelayAddr {
 				ref abbr,
 				ref relay_addr,
-			} => write!(f, "{}:  abbr: {} ,  full: {}", "RelayAddr".cyan(), abbr.bright_green(), relay_addr.bright_green()),
+			} => write!(
+				f,
+				"{}:  abbr: {} ,  full: {}",
+				"RelayAddr".cyan(),
+				abbr.bright_green(),
+				relay_addr.bright_green()
+			),
 		}
 	}
 }

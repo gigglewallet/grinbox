@@ -56,9 +56,7 @@ impl Display for GrinboxRequest {
 				from.bright_green(),
 				to.bright_green()
 			),
-			GrinboxRequest::RetrieveRelayAddr {
-				ref abbr,
-			} => write!(
+			GrinboxRequest::RetrieveRelayAddr { ref abbr } => write!(
 				f,
 				"{} : {}",
 				"RetrieveRelayAddr".bright_purple(),

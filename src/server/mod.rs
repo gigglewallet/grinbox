@@ -6,8 +6,8 @@ use futures::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use uuid::Uuid;
 use std::sync::{Arc, Mutex};
+use uuid::Uuid;
 
 use ws::{
 	connect, CloseCode, Handler, Handshake, Message, Request, Response, Result as WsResult, Sender,
@@ -255,19 +255,13 @@ impl AsyncServer {
 		}
 	}
 
-	fn retrieve_relay_addr(
-		&self,
-		abbr: String,
-	) -> GrinboxResponse {
+	fn retrieve_relay_addr(&self, abbr: String) -> GrinboxResponse {
 		if abbr.len() == 6 {
 			let lookup = self.consumers.lock().unwrap();
 			if lookup.contains_key(&abbr) {
 				let relay_addr = lookup.get(&abbr).unwrap().clone();
 				info!("relay_addr: {}", relay_addr);
-				GrinboxResponse::RelayAddr {
-					abbr,
-					relay_addr,
-				}
+				GrinboxResponse::RelayAddr { abbr, relay_addr }
 			} else {
 				AsyncServer::error(GrinboxError::InvalidRelayAbbr)
 			}
@@ -439,9 +433,7 @@ impl Handler for AsyncServer {
 				GrinboxRequest::Subscribe { address, signature } => {
 					self.subscribe(address, signature)
 				}
-				GrinboxRequest::RetrieveRelayAddr {
-					abbr,
-				} => self.retrieve_relay_addr(abbr),
+				GrinboxRequest::RetrieveRelayAddr { abbr } => self.retrieve_relay_addr(abbr),
 				GrinboxRequest::PostSlate {
 					from,
 					to,
