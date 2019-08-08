@@ -6,7 +6,8 @@ use futures::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use parking_lot::Mutex;
+use std::sync::{Arc};
 use uuid::Uuid;
 
 use ws::{
@@ -37,7 +38,7 @@ pub struct AsyncServer {
 	nats_sender: UnboundedSender<BrokerRequest>,
 	response_handlers_sender: UnboundedSender<BrokerResponseHandler>,
 	subscriptions: HashMap<String, Subscription>,
-	consumers: Arc<Mutex<HashMap<String, String>>>,
+	consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 	grinrelay_domain: String,
 	grinrelay_port: u16,
 	grinrelay_protocol_unsecure: bool,
@@ -83,7 +84,7 @@ impl AsyncServer {
 		grinrelay_port: u16,
 		grinrelay_protocol_unsecure: bool,
 		ssl: Option<Rc<SslAcceptor>>,
-		consumers: Arc<Mutex<HashMap<String, String>>>,
+		consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 	) -> AsyncServer {
 		let id = Uuid::new_v4().to_string();
 
@@ -257,10 +258,9 @@ impl AsyncServer {
 
 	fn retrieve_relay_addr(&self, abbr: String) -> GrinboxResponse {
 		if abbr.len() == 6 {
-			let lookup = self.consumers.lock().unwrap();
+			let lookup = self.consumers.lock();
 			if lookup.contains_key(&abbr) {
 				let relay_addr = lookup.get(&abbr).unwrap().clone();
-				info!("relay_addr: {}", relay_addr);
 				GrinboxResponse::RelayAddr { abbr, relay_addr }
 			} else {
 				AsyncServer::error(GrinboxError::InvalidRelayAbbr)

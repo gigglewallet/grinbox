@@ -43,7 +43,7 @@ pub enum GrinboxResponse {
 	},
 	RelayAddr {
 		abbr: String,
-		relay_addr: String,
+		relay_addr: Vec<String>,
 	},
 }
 
@@ -72,7 +72,7 @@ impl Display for GrinboxResponse {
 				"{}:  abbr: {} ,  full: {}",
 				"RelayAddr".cyan(),
 				abbr.bright_green(),
-				relay_addr.bright_green()
+				relay_addr[0].bright_green()
 			),
 		}
 	}

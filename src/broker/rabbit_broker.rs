@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
+use parking_lot;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
 
@@ -29,7 +30,7 @@ pub struct Broker {
 	address: SocketAddr,
 	username: String,
 	password: String,
-	consumers: Arc<Mutex<HashMap<String, String>>>,
+	consumers: Arc<parking_lot::Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl Broker {
@@ -37,7 +38,7 @@ impl Broker {
 		address: SocketAddr,
 		username: String,
 		password: String,
-		consumers: Arc<Mutex<HashMap<String, String>>>,
+		consumers: Arc<parking_lot::Mutex<HashMap<String, Vec<String>>>>,
 	) -> Broker {
 		Broker {
 			address,
@@ -144,7 +145,7 @@ struct BrokerSession {
 	consumers: Arc<Mutex<HashMap<String, Consumer>>>,
 	subject_to_consumer_id_lookup: Arc<Mutex<HashMap<String, String>>>,
 	subscription_id_to_consumer_id_lookup: Arc<Mutex<HashMap<String, String>>>,
-	consumer_shortname_to_subject_loopup: Arc<Mutex<HashMap<String, String>>>,
+	consumer_shortname_to_subject_loopup: Arc<parking_lot::Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl BrokerSession {
@@ -153,8 +154,6 @@ impl BrokerSession {
 	}
 
 	fn subscribe(&mut self, id: String, subject: String, sender: UnboundedSender<BrokerResponse>) {
-		info!("subscribe: terryzhao: {}", subject);
-
 		self.unsubscribe_by_subject(&subject);
 
 		let subscription_id = self
