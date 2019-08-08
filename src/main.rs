@@ -10,12 +10,12 @@ use crate::broker::Broker;
 use crate::server::AsyncServer;
 use colored::*;
 use grinrelaylib::types::{set_running_mode, ChainTypes};
-use std::collections::HashMap;
+use parking_lot::Mutex;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::default::Default;
 use std::net::{TcpListener, ToSocketAddrs};
-use parking_lot::Mutex;
-use std::sync::{Arc};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -48,9 +48,11 @@ fn initial_consumers(login: String, passwd: String) -> HashMap<String, Vec<Strin
 	let mut map = HashMap::new();
 
 	let client = reqwest::Client::new();
-	let mut resp = client.get("http://localhost:15672/api/consumers")
+	let mut resp = client
+		.get("http://localhost:15672/api/consumers")
 		.basic_auth(login, Some(passwd))
-		.send().unwrap();
+		.send()
+		.unwrap();
 
 	if resp.status().is_success() {
 		let data: Value = serde_json::from_str(resp.text().unwrap().as_str()).unwrap();
@@ -61,11 +63,15 @@ fn initial_consumers(login: String, passwd: String) -> HashMap<String, Vec<Strin
 			let name = queue.get("name").unwrap().as_str().unwrap();
 			let str_name: String = String::from(name);
 			let len = str_name.len();
-			let key = str_name.clone()[len-6..].to_owned();
+			let key = str_name.clone()[len - 6..].to_owned();
 
 			match map.entry(key) {
-				Entry::Vacant(e) => { e.insert(vec![str_name]); },
-				Entry::Occupied(mut e) => { e.get_mut().push(str_name); }
+				Entry::Vacant(e) => {
+					e.insert(vec![str_name]);
+				}
+				Entry::Occupied(mut e) => {
+					e.get_mut().push(str_name);
+				}
 			}
 		}
 	}
@@ -76,20 +82,20 @@ fn initial_consumers(login: String, passwd: String) -> HashMap<String, Vec<Strin
 			for val in v1_iter {
 				info!("{}: {}", key, val);
 			}
-
 		}
 	}
 
 	map
 }
 
-fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
-							login: String,
-						   	passwd: String) {
-
+fn rabbit_consumer_monitor(
+	consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
+	login: String,
+	passwd: String,
+) {
 	thread::spawn(|| {
 		//waiting for connections between wallet and relay.
-		thread::sleep(Duration::from_millis(10*1000));
+		thread::sleep(Duration::from_millis(10 * 1000));
 		let map = initial_consumers(login, passwd);
 		for (key, value) in map.to_owned() {
 			consumers.lock().insert(key, value);
@@ -134,7 +140,6 @@ fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 		                             headers: basic::BasicProperties,
 		                             _data: Vec<u8>| {
 			if deliver.routing_key == "consumer.created" {
-
 				let header = headers.to_owned().headers.unwrap();
 				let queue = match header.get("queue").unwrap() {
 					LongString(val) => val.to_string(),
@@ -145,10 +150,14 @@ fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
 					let len = queue.len();
-					let key = queue.clone()[len-6..].to_owned();
+					let key = queue.clone()[len - 6..].to_owned();
 					match consumers.lock().entry(key) {
-						Entry::Vacant(e) => { e.insert(vec![queue]); },
-						Entry::Occupied(mut e) => { e.get_mut().push(queue); }
+						Entry::Vacant(e) => {
+							e.insert(vec![queue]);
+						}
+						Entry::Occupied(mut e) => {
+							e.get_mut().push(queue);
+						}
 					}
 				}
 			}
@@ -165,7 +174,7 @@ fn rabbit_consumer_monitor(consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
 					let len = queue.len();
-					let key = queue.clone()[len-6..].to_owned();
+					let key = queue.clone()[len - 6..].to_owned();
 					if consumers.lock().contains_key(&key) {
 						consumers.lock().remove(&key);
 					}

@@ -4,10 +4,10 @@ use futures::{
 	sync::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
 	Future, Stream,
 };
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use parking_lot::Mutex;
-use std::sync::{Arc};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use ws::{

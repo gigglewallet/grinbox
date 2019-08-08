@@ -1,7 +1,7 @@
+use parking_lot;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use parking_lot;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
 
