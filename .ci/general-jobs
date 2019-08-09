@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+case "${CI_JOB}" in
+    "test")
+        for dir in ${CI_JOB_ARGS}; do
+            printf "executing tests in directory \`%s\`...\n" "${dir}"
+            if [ "$dir" != "xyz" ]; then
+                cd "${dir}" || exit 1;
+            fi
+            cargo build --release || exit 1
+            if [ "$dir" != "xyz" ]; then
+                cd - > /dev/null || exit 1;
+            fi
+        done
+        ;;
+esac
