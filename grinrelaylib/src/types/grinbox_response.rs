@@ -16,6 +16,8 @@ pub enum GrinboxError {
 	TooManySubscriptions,
 	#[fail(display = "GrinboxError: invalid abbreviation relay address")]
 	InvalidRelayAbbr,
+	#[fail(display = "GrinboxError: not online")]
+	Offline,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
