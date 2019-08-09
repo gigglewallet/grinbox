@@ -93,9 +93,13 @@ fn rabbit_consumer_monitor(
 	login: String,
 	password: String,
 ) {
+	// todo: fix me.
+	// note: in case of the restarting of this relay server process, we have to wait for
+	// a few seconds for re-connecting between wallets and relay server. otherwise the consumers
+	// list will miss them.
+	thread::sleep(Duration::from_secs(10));
+
 	thread::spawn(|| {
-		//waiting for connections between wallet and relay.
-		thread::sleep(Duration::from_millis(10 * 1000));
 		let map = initial_consumers(login.clone(), password.clone());
 		for (key, value) in map.to_owned() {
 			consumers.lock().insert(key, value);
