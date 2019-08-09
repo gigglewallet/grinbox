@@ -8,6 +8,7 @@ pub enum GrinboxError {
 	InvalidSignature,
 	InvalidChallenge,
 	TooManySubscriptions,
+	InvalidRelayAbbr,
 }
 
 impl Display for GrinboxError {
@@ -18,6 +19,7 @@ impl Display for GrinboxError {
 			GrinboxError::InvalidSignature => write!(f, "{}", "invalid signature!"),
 			GrinboxError::InvalidChallenge => write!(f, "{}", "invalid challenge!"),
 			GrinboxError::TooManySubscriptions => write!(f, "{}", "too many subscriptions!"),
+			GrinboxError::InvalidRelayAbbr => write!(f, "{}", "invalid abbr relay address!"),
 		}
 	}
 }
@@ -39,6 +41,10 @@ pub enum GrinboxResponse {
 		signature: String,
 		challenge: String,
 	},
+	RelayAddr {
+		abbr: String,
+		relay_addr: Vec<String>,
+	},
 }
 
 impl Display for GrinboxResponse {
@@ -58,6 +64,16 @@ impl Display for GrinboxResponse {
 				signature: _,
 				challenge: _,
 			} => write!(f, "{} from {}", "Slate".cyan(), from.bright_green()),
+			GrinboxResponse::RelayAddr {
+				ref abbr,
+				ref relay_addr,
+			} => write!(
+				f,
+				"{}:  abbr: {} ,  full: {}",
+				"RelayAddr".cyan(),
+				abbr.bright_green(),
+				relay_addr[0].bright_green()
+			),
 		}
 	}
 }
