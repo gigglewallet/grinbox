@@ -27,7 +27,7 @@ use grinrelaylib::utils::secp::{PublicKey, Signature};
 use crate::broker::{BrokerRequest, BrokerResponse};
 
 static MAX_SUBSCRIPTIONS: usize = 1;
-const GRINRELAY_ABBR_ADDRESS_REGEX: &str = r"^(?P<abbr_addr>[0-9a-z\-]{6})$";
+const GRINRELAY_ABBR_ADDRESS_REGEX: &str = r"^(?P<abbr_addr>[02-9ac-hj-np-z]{6})$";
 
 pub struct BrokerResponseHandler {
 	inner: std::sync::Arc<std::sync::Mutex<Server>>,
