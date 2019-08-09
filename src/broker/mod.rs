@@ -6,3 +6,4 @@ mod stomp;
 
 pub use self::broker_protocol::{BrokerRequest, BrokerResponse};
 pub use self::rabbit_broker::Broker;
+pub use parking_lot::Mutex;

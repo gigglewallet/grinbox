@@ -44,13 +44,13 @@ fn read_file(name: &str) -> std::io::Result<Vec<u8>> {
 	Ok(buf)
 }
 
-fn initial_consumers(login: String, passwd: String) -> HashMap<String, Vec<String>> {
+fn initial_consumers(login: String, password: String) -> HashMap<String, Vec<String>> {
 	let mut map = HashMap::new();
 
 	let client = reqwest::Client::new();
 	let mut resp = client
 		.get("http://localhost:15672/api/consumers")
-		.basic_auth(login, Some(passwd))
+		.basic_auth(login, Some(password))
 		.send()
 		.unwrap();
 
@@ -91,12 +91,12 @@ fn initial_consumers(login: String, passwd: String) -> HashMap<String, Vec<Strin
 fn rabbit_consumer_monitor(
 	consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 	login: String,
-	passwd: String,
+	password: String,
 ) {
 	thread::spawn(|| {
 		//waiting for connections between wallet and relay.
 		thread::sleep(Duration::from_millis(10 * 1000));
-		let map = initial_consumers(login, passwd);
+		let map = initial_consumers(login.clone(), password.clone());
 		for (key, value) in map.to_owned() {
 			consumers.lock().insert(key, value);
 		}
@@ -106,8 +106,8 @@ fn rabbit_consumer_monitor(
 			host: "127.0.0.1".to_string(),
 			port: 5672,
 			vhost: "/".to_string(),
-			login: "admin".to_string(),
-			password: "admin".to_string(),
+			login,
+			password,
 			frame_max_limit: 131072,
 			channel_max_limit: 65535,
 			locale: "en_US".to_string(),
@@ -119,8 +119,8 @@ fn rabbit_consumer_monitor(
 		let mut channel = session
 			.open_channel(1)
 			.ok()
-			.expect("Error openning channel 1");
-		info!("Openned channel: {:?}", channel.id);
+			.expect("Error opening channel 1");
+		info!("Opened channel: {:?}", channel.id);
 
 		let queue_name = "queue_consumer_relay";
 
