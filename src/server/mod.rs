@@ -5,6 +5,7 @@ use futures::{
 	Future, Stream,
 };
 use parking_lot::Mutex;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -26,6 +27,7 @@ use grinrelaylib::utils::secp::{PublicKey, Signature};
 use crate::broker::{BrokerRequest, BrokerResponse};
 
 static MAX_SUBSCRIPTIONS: usize = 1;
+const GRINRELAY_ABBR_ADDRESS_REGEX: &str = r"^(?P<abbr_addr>[0-9a-z\-]{6})$";
 
 pub struct BrokerResponseHandler {
 	inner: std::sync::Arc<std::sync::Mutex<Server>>,
@@ -257,14 +259,16 @@ impl AsyncServer {
 	}
 
 	fn retrieve_relay_addr(&self, abbr: String) -> GrinboxResponse {
-		if abbr.len() == 6 {
-			let lookup = self.consumers.lock();
-			if lookup.contains_key(&abbr) {
-				let relay_addr = lookup.get(&abbr).unwrap().clone();
-				GrinboxResponse::RelayAddr { abbr, relay_addr }
-			} else {
-				AsyncServer::error(GrinboxError::InvalidRelayAbbr)
-			}
+		let re = Regex::new(GRINRELAY_ABBR_ADDRESS_REGEX).unwrap();
+		let captures = re.captures(&abbr);
+		if captures.is_none() {
+			return AsyncServer::error(GrinboxError::InvalidRelayAbbr);
+		}
+
+		let lookup = self.consumers.lock();
+		if lookup.contains_key(&abbr) {
+			let relay_addr = lookup.get(&abbr).unwrap().clone();
+			GrinboxResponse::RelayAddr { abbr, relay_addr }
 		} else {
 			AsyncServer::error(GrinboxError::InvalidRelayAbbr)
 		}

@@ -1,27 +1,21 @@
 use colored::*;
+use failure::Fail;
 use std::fmt::{Display, Formatter, Result};
 
-#[derive(Clone, Eq, PartialEq, Serialize, Deserialize, Debug)]
+#[derive(Clone, Eq, Fail, PartialEq, Serialize, Deserialize, Debug)]
 pub enum GrinboxError {
+	#[fail(display = "GrinboxError: unknown error")]
 	UnknownError,
+	#[fail(display = "GrinboxError: invalid request")]
 	InvalidRequest,
+	#[fail(display = "GrinboxError: invalid signature")]
 	InvalidSignature,
+	#[fail(display = "GrinboxError: invalid challenge")]
 	InvalidChallenge,
+	#[fail(display = "GrinboxError: too many subscriptions")]
 	TooManySubscriptions,
+	#[fail(display = "GrinboxError: invalid abbreviation relay address")]
 	InvalidRelayAbbr,
-}
-
-impl Display for GrinboxError {
-	fn fmt(&self, f: &mut Formatter) -> Result {
-		match *self {
-			GrinboxError::UnknownError => write!(f, "{}", "unknown error!"),
-			GrinboxError::InvalidRequest => write!(f, "{}", "invalid request!"),
-			GrinboxError::InvalidSignature => write!(f, "{}", "invalid signature!"),
-			GrinboxError::InvalidChallenge => write!(f, "{}", "invalid challenge!"),
-			GrinboxError::TooManySubscriptions => write!(f, "{}", "too many subscriptions!"),
-			GrinboxError::InvalidRelayAbbr => write!(f, "{}", "invalid abbr relay address!"),
-		}
-	}
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -69,7 +63,7 @@ impl Display for GrinboxResponse {
 				ref relay_addr,
 			} => write!(
 				f,
-				"{}:  abbr: {} ,  full: {}",
+				"{}: abbr: {}, full: {}",
 				"RelayAddr".cyan(),
 				abbr.bright_green(),
 				relay_addr[0].bright_green()

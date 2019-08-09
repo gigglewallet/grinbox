@@ -1,7 +1,7 @@
-use parking_lot;
+use crate::Mutex;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
 
@@ -30,7 +30,7 @@ pub struct Broker {
 	address: SocketAddr,
 	username: String,
 	password: String,
-	consumers: Arc<parking_lot::Mutex<HashMap<String, Vec<String>>>>,
+	consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl Broker {
@@ -38,7 +38,7 @@ impl Broker {
 		address: SocketAddr,
 		username: String,
 		password: String,
-		consumers: Arc<parking_lot::Mutex<HashMap<String, Vec<String>>>>,
+		consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 	) -> Broker {
 		Broker {
 			address,
@@ -145,7 +145,7 @@ struct BrokerSession {
 	consumers: Arc<Mutex<HashMap<String, Consumer>>>,
 	subject_to_consumer_id_lookup: Arc<Mutex<HashMap<String, String>>>,
 	subscription_id_to_consumer_id_lookup: Arc<Mutex<HashMap<String, String>>>,
-	consumer_shortname_to_subject_loopup: Arc<parking_lot::Mutex<HashMap<String, Vec<String>>>>,
+	consumer_shortname_to_subject_loopup: Arc<Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl BrokerSession {
@@ -159,7 +159,6 @@ impl BrokerSession {
 		let subscription_id = self
 			.session
 			.lock()
-			.unwrap()
 			.subscription(&subject)
 			.with(AckMode::Auto)
 			.with(Header::new(
@@ -171,31 +170,20 @@ impl BrokerSession {
 		let consumer = Consumer::new(subject.clone(), subscription_id.clone(), sender);
 		self.subject_to_consumer_id_lookup
 			.lock()
-			.unwrap()
 			.insert(subject, id.clone());
 		self.subscription_id_to_consumer_id_lookup
 			.lock()
-			.unwrap()
 			.insert(subscription_id, id.clone());
-		self.consumers.lock().unwrap().insert(id, consumer);
+		self.consumers.lock().insert(id, consumer);
 	}
 
 	fn unsubscribe_by_subject(&mut self, subject: &str) {
-		if let Some(consumer_id) = self
-			.subject_to_consumer_id_lookup
-			.lock()
-			.unwrap()
-			.remove(subject)
-		{
-			if let Some(consumer) = self.consumers.lock().unwrap().remove(&consumer_id) {
+		if let Some(consumer_id) = self.subject_to_consumer_id_lookup.lock().remove(subject) {
+			if let Some(consumer) = self.consumers.lock().remove(&consumer_id) {
 				self.subscription_id_to_consumer_id_lookup
 					.lock()
-					.unwrap()
 					.remove(&consumer.subscription_id);
-				self.session
-					.lock()
-					.unwrap()
-					.unsubscribe(&consumer.subscription_id);
+				self.session.lock().unsubscribe(&consumer.subscription_id);
 			} else {
 				error!("could not find consumer for subject [{}]", subject);
 			}
@@ -203,21 +191,16 @@ impl BrokerSession {
 	}
 
 	fn unsubscribe(&mut self, id: &str) {
-		if let Some(consumer) = self.consumers.lock().unwrap().remove(id) {
+		if let Some(consumer) = self.consumers.lock().remove(id) {
 			if let Some(_) = self
 				.subject_to_consumer_id_lookup
 				.lock()
-				.unwrap()
 				.remove(&consumer.subject)
 			{
 				self.subscription_id_to_consumer_id_lookup
 					.lock()
-					.unwrap()
 					.remove(&consumer.subscription_id);
-				self.session
-					.lock()
-					.unwrap()
-					.unsubscribe(&consumer.subscription_id);
+				self.session.lock().unsubscribe(&consumer.subscription_id);
 			} else {
 				error!("could not find consumer for id [{}]", id);
 			}
@@ -242,7 +225,6 @@ impl BrokerSession {
 
 		self.session
 			.lock()
-			.unwrap()
 			.message(&destination, payload)
 			.with(Header::new(
 				HeaderName::from_str("x-expires"),
@@ -264,10 +246,9 @@ impl BrokerSession {
 			match self
 				.subscription_id_to_consumer_id_lookup
 				.lock()
-				.unwrap()
 				.get(subscription_id)
 			{
-				Some(consumer_id) => match self.consumers.lock().unwrap().get(consumer_id) {
+				Some(consumer_id) => match self.consumers.lock().get(consumer_id) {
 					Some(consumer) => {
 						if let Some(reply_to) = frame
 							.headers
@@ -303,7 +284,7 @@ impl Future for BrokerSession {
 	type Error = std::io::Error;
 
 	fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-		let msg = match try_ready!(self.session.lock().unwrap().poll()) {
+		let msg = match try_ready!(self.session.lock().poll()) {
 			None => {
 				return Ok(Async::Ready(()));
 			}
