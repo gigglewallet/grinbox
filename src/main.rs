@@ -105,7 +105,7 @@ fn rabbit_consumer_monitor(
 			consumers.lock().insert(key, value);
 		}
 
-		info!("rabbit_consumer_monitor ******** start!");
+		info!("rabbit_consumer_monitor start");
 		let options = Options {
 			host: "127.0.0.1".to_string(),
 			port: 5672,
@@ -201,7 +201,7 @@ fn rabbit_consumer_monitor(
 
 		channel.close(200, "Bye").unwrap();
 		session.close(200, "Good Bye");
-		info!("rabbit_consumer_monitor ******** exit!");
+		info!("rabbit_consumer_monitor exit");
 	});
 }
 
