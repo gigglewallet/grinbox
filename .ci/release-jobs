@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+# Redeclare CI and VCP specific environment variables
+# to make future migration to other providers easier.
+readonly JOB_ID="${TRAVIS_JOB_ID}"
+readonly OS_NAME="${TRAVIS_OS_NAME}"
+readonly TEST_RESULT="${TRAVIS_TEST_RESULT}"
+
+case "${CI_JOB}" in
+    "release")
+        # The release can only be triggered after successful completion of all tests.
+        [[ "${TEST_RESULT}" != 0 ]] && exit 1
+
+        readonly REPO_TAG="$(git describe --tags --exact-match 2> /dev/null || git symbolic-ref -q --short HEAD)"
+
+        case "${OS_NAME}" in
+            "linux")
+                cargo clean && \
+                cargo build --release
+                readonly ARCHIVE_CMD="tar zcf"
+                readonly BIN_SUFFIX=""
+                readonly PKG_NAME="grinrelay-${REPO_TAG}-${JOB_ID}-linux-amd64"
+                readonly PKG_SUFFIX=".tgz"
+                ;;
+
+            *)
+                printf "Error! Unknown \$OS_NAME: \`%s\`" "${OS_NAME}"
+                exit 1
+        esac
+
+        printf "creating package \`%s\` for the release binary...\n" "${PKG_NAME}${PKG_SUFFIX}"
+
+        cd ./target/release/ || exit 1
+        rm -f -- *"${PKG_SUFFIX}"
+        ${ARCHIVE_CMD} "${PKG_NAME}${PKG_SUFFIX}" "grinrelay${BIN_SUFFIX}"
+        ls -ls -- *${PKG_SUFFIX} | cut -d' ' -f6-
+        [[ "$OS_NAME" = "linux" || "$OS_NAME" = "osx" ]] && shasum "${PKG_NAME}${PKG_SUFFIX}" > "${PKG_NAME}${PKG_SUFFIX}-shasum.txt"
+        [ "$OS_NAME" = "windows" ] && CertUtil -hashfile "${PKG_NAME}${PKG_SUFFIX}" SHA256 > "${PKG_NAME}${PKG_SUFFIX}-shasum.txt"
+        ls -ls -- *-shasum.txt | cut -d' ' -f6-
+        cd - > /dev/null || exit 1
+
+        printf "%s package \`%s\` generated\n" "${OS_NAME}" "${PKG_NAME}${PKG_SUFFIX}"
+
+        ;;
+esac
