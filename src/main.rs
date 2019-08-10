@@ -94,12 +94,6 @@ fn rabbit_consumer_monitor(
 	password: String,
 ) {
 	thread::spawn(|| {
-		// todo: fix me.
-		// note: in case of the restarting of this relay server process, we have to wait for
-		// a few seconds for re-connecting between wallets and relay server. otherwise the consumers
-		// list will miss them.
-		thread::sleep(Duration::from_secs(10));
-
 		let map = initial_consumers(login.clone(), password.clone());
 		for (key, value) in map.to_owned() {
 			consumers.lock().insert(key, value);
@@ -132,7 +126,7 @@ fn rabbit_consumer_monitor(
 
 		if queue_declare.is_err() {
 			error!("grin relay consumer queue declared failure!");
-			std::process::exit(0);
+			std::process::exit(1);
 		} else {
 			info!("Queue declare: {:?}", queue_declare);
 		}
@@ -146,7 +140,7 @@ fn rabbit_consumer_monitor(
 		);
 		if bind_result.is_err() {
 			error!("grin relay consumer queue bind failure!");
-			std::process::exit(0);
+			std::process::exit(1);
 		} else {
 			info!("queue bind successfully!");
 		}
