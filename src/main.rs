@@ -17,7 +17,6 @@ use std::default::Default;
 use std::net::{TcpListener, ToSocketAddrs};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
 
 use std::fs::File;
 use std::io::Read;
@@ -94,12 +93,6 @@ fn rabbit_consumer_monitor(
 	password: String,
 ) {
 	thread::spawn(|| {
-		// todo: fix me.
-		// note: in case of the restarting of this relay server process, we have to wait for
-		// a few seconds for re-connecting between wallets and relay server. otherwise the consumers
-		// list will miss them.
-		thread::sleep(Duration::from_secs(10));
-
 		let map = initial_consumers(login.clone(), password.clone());
 		for (key, value) in map.to_owned() {
 			consumers.lock().insert(key, value);
@@ -132,7 +125,7 @@ fn rabbit_consumer_monitor(
 
 		if queue_declare.is_err() {
 			error!("grin relay consumer queue declared failure!");
-			std::process::exit(0);
+			std::process::exit(1);
 		} else {
 			info!("Queue declare: {:?}", queue_declare);
 		}
@@ -146,7 +139,7 @@ fn rabbit_consumer_monitor(
 		);
 		if bind_result.is_err() {
 			error!("grin relay consumer queue bind failure!");
-			std::process::exit(0);
+			std::process::exit(1);
 		} else {
 			info!("queue bind successfully!");
 		}
@@ -165,8 +158,8 @@ fn rabbit_consumer_monitor(
 				info!("consumer.created ---- {}", queue);
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					let len = queue.len();
-					let key = queue.clone()[len - 6..].to_owned();
+					let tail = queue.len().saturating_sub(6);
+					let key = queue[tail..].to_string();
 					match consumers.lock().entry(key) {
 						Entry::Vacant(e) => {
 							e.insert(vec![queue]);
@@ -189,10 +182,10 @@ fn rabbit_consumer_monitor(
 				info!("consumer.deleted ---- {}", queue);
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					let len = queue.len();
-					let key = queue.clone()[len - 6..].to_owned();
-					if consumers.lock().contains_key(&key) {
-						consumers.lock().remove(&key);
+					let tail = queue.len().saturating_sub(6);
+					let key = &queue[tail..];
+					if consumers.lock().contains_key(key) {
+						consumers.lock().remove(key);
 					}
 				}
 			}
