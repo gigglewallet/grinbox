@@ -7,7 +7,7 @@ case "${CI_JOB}" in
             if [ "$dir" != "xyz" ]; then
                 cd "${dir}" || exit 1;
             fi
-            cargo build --release || exit 1
+            OPENSSL_STATIC=1 OPENSSL_LIB_DIR=/usr/local/opt/openssl/lib OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include cargo build --release || exit 1
             if [ "$dir" != "xyz" ]; then
                 cd - > /dev/null || exit 1;
             fi
