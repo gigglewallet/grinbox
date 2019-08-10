@@ -270,7 +270,7 @@ impl AsyncServer {
 			let relay_addr = lookup.get(&abbr).unwrap().clone();
 			GrinboxResponse::RelayAddr { abbr, relay_addr }
 		} else {
-			AsyncServer::error(GrinboxError::InvalidRelayAbbr)
+			AsyncServer::error(GrinboxError::Offline)
 		}
 	}
 
