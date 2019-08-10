@@ -1,10 +1,10 @@
 [package]
 name = "grinrelaylib"
-version = "1.0.4"
+version = "1.0.5"
 authors = ["vault713 devs and giggle devs"]
 edition = "2018"
 description = "A library that encapsulates grinrelay integration."
-keywords = [ "grinrelay", "vault713", "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle" ]
+keywords = [ "grinrelay", "grinwallet", "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle" ]
 license = "Apache-2.0"
 readme = "README.md"
 

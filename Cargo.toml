@@ -1,11 +1,11 @@
 [package]
 name = "grinrelay"
-version = "1.0.4"
+version = "1.0.5"
 authors = ["vault713 devs and giggle devs"]
 build = "src/build/build.rs"
 edition = "2018"
 description = "A slate relay service for Grin."
-keywords = [ "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle", "vault713" ]
+keywords = [ "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle", "grinrelay" ]
 license = "Apache-2.0"
 readme = "README.md"
 
