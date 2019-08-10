@@ -17,7 +17,6 @@ use std::default::Default;
 use std::net::{TcpListener, ToSocketAddrs};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
 
 use std::fs::File;
 use std::io::Read;
@@ -159,8 +158,8 @@ fn rabbit_consumer_monitor(
 				info!("consumer.created ---- {}", queue);
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					let len = queue.len();
-					let key = queue.clone()[len - 6..].to_owned();
+					let tail = queue.len().saturating_sub(6);
+					let key = queue[tail..].to_string();
 					match consumers.lock().entry(key) {
 						Entry::Vacant(e) => {
 							e.insert(vec![queue]);
@@ -183,10 +182,10 @@ fn rabbit_consumer_monitor(
 				info!("consumer.deleted ---- {}", queue);
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					let len = queue.len();
-					let key = queue.clone()[len - 6..].to_owned();
-					if consumers.lock().contains_key(&key) {
-						consumers.lock().remove(&key);
+					let tail = queue.len().saturating_sub(6);
+					let key = &queue[tail..];
+					if consumers.lock().contains_key(key) {
+						consumers.lock().remove(key);
 					}
 				}
 			}
