@@ -126,16 +126,28 @@ fn rabbit_consumer_monitor(
 			.expect("Error opening channel 1");
 		info!("Opened channel: {:?}", channel.id);
 
-		let queue_name = "queue_consumer_relay";
+		let queue_name = "grin_relay_consumer_notification_queue";
+		let queue_declare =
+			channel.queue_declare(queue_name, false, true, false, false, false, Table::new());
+
+		if queue_declare.is_err() {
+			error!("grin relay consumer queue declared failure!");
+			std::process::exit(0);
+		} else {
+			info!("Queue declare: {:?}", queue_declare);
+		}
 
 		let bind_result = channel.queue_bind(
 			queue_name,
 			"amq.rabbitmq.event",
-			"queue.*",
+			"consumer.*",
 			false,
 			Table::new(),
 		);
-		if bind_result.is_ok() {
+		if bind_result.is_err() {
+			error!("grin relay consumer queue bind failure!");
+			std::process::exit(0);
+		} else {
 			info!("queue bind successfully!");
 		}
 
