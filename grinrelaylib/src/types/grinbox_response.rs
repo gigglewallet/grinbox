@@ -4,19 +4,19 @@ use std::fmt::{Display, Formatter, Result};
 
 #[derive(Clone, Eq, Fail, PartialEq, Serialize, Deserialize, Debug)]
 pub enum GrinboxError {
-	#[fail(display = "GrinboxError: unknown error")]
+	#[fail(display = "GrinRelay Protocol: unknown error")]
 	UnknownError,
-	#[fail(display = "GrinboxError: invalid request")]
+	#[fail(display = "GrinRelay Protocol: invalid request")]
 	InvalidRequest,
-	#[fail(display = "GrinboxError: invalid signature")]
+	#[fail(display = "GrinRelay Protocol: invalid signature")]
 	InvalidSignature,
-	#[fail(display = "GrinboxError: invalid challenge")]
+	#[fail(display = "GrinRelay Protocol: invalid challenge")]
 	InvalidChallenge,
-	#[fail(display = "GrinboxError: too many subscriptions")]
+	#[fail(display = "GrinRelay Protocol: too many subscriptions")]
 	TooManySubscriptions,
-	#[fail(display = "GrinboxError: invalid abbreviation relay address")]
+	#[fail(display = "GrinRelay Protocol: invalid abbreviation relay address")]
 	InvalidRelayAbbr,
-	#[fail(display = "GrinboxError: not online")]
+	#[fail(display = "GrinRelay Protocol: not online")]
 	Offline,
 }
 
