@@ -28,7 +28,7 @@ use openssl::x509::X509;
 
 use amqp::protocol::basic;
 use amqp::AMQPScheme;
-use amqp::TableEntry::LongString;
+use amqp::TableEntry;
 use amqp::{Basic, Channel, Options, Session, Table};
 
 extern crate serde_derive;
@@ -120,8 +120,10 @@ fn rabbit_consumer_monitor(
 		info!("Opened channel: {:?}", channel.id);
 
 		let queue_name = "grin_relay_consumer_notification_queue";
+		let mut args = Table::new();
+		args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
 		let queue_declare =
-			channel.queue_declare(queue_name, false, true, false, false, false, Table::new());
+			channel.queue_declare(queue_name, false, true, false, false, false, args);
 
 		if queue_declare.is_err() {
 			error!("grin relay consumer queue declared failure!");
@@ -151,7 +153,7 @@ fn rabbit_consumer_monitor(
 			if deliver.routing_key == "consumer.created" {
 				let header = headers.to_owned().headers.unwrap();
 				let queue = match header.get("queue").unwrap() {
-					LongString(val) => val.to_string(),
+					TableEntry::LongString(val) => val.to_string(),
 					_ => queue_name.to_string(),
 				};
 
@@ -175,7 +177,7 @@ fn rabbit_consumer_monitor(
 				let header = headers.to_owned().headers.unwrap();
 
 				let queue = match header.get("queue").unwrap() {
-					LongString(val) => val.to_string(),
+					TableEntry::LongString(val) => val.to_string(),
 					_ => queue_name.to_string(),
 				};
 
@@ -195,7 +197,7 @@ fn rabbit_consumer_monitor(
 			queue_name,
 			"",
 			false,
-			false,
+			true,
 			false,
 			false,
 			Table::new(),
