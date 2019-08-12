@@ -35,6 +35,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use serde_json::Value;
+use uuid::Uuid;
 
 fn read_file(name: &str) -> std::io::Result<Vec<u8>> {
 	let mut file = File::open(name)?;
@@ -87,6 +88,10 @@ fn initial_consumers(login: String, password: String) -> HashMap<String, Vec<Str
 	map
 }
 
+fn string_to_static_str(s: String) -> &'static str {
+	Box::leak(s.into_boxed_str())
+}
+
 fn rabbit_consumer_monitor(
 	consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 	login: String,
@@ -119,7 +124,10 @@ fn rabbit_consumer_monitor(
 			.expect("Error opening channel 1");
 		info!("Opened channel: {:?}", channel.id);
 
-		let queue_name = "grin_relay_consumer_notification_queue";
+		let id = Uuid::new_v4().to_string();
+		let grinrelay_host = std::env::var("GRINRELAY_HOST").unwrap_or(id);
+		let queue_name: &'static str =
+			string_to_static_str(format!("{}-consumer-notification", grinrelay_host).to_string());
 		let mut args = Table::new();
 		args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
 		let queue_declare =
