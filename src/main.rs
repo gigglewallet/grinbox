@@ -120,7 +120,11 @@ fn rabbit_consumer_monitor(
 			.expect("Error opening channel 1");
 		info!("Opened channel: {:?}", channel.id);
 
-		let queue_name = format!("{}-{}-consumer-notify", gethostname::gethostname().into_string().unwrap(), Uuid::new_v4());
+		let queue_name = format!(
+			"{}-{}-consumer-notify",
+			gethostname::gethostname().into_string().unwrap(),
+			Uuid::new_v4()
+		);
 		let mut args = Table::new();
 		args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
 		let queue_declare =
@@ -159,7 +163,7 @@ fn rabbit_consumer_monitor(
 				};
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-                    info!("consumer.created ---- {}", queue);
+					info!("consumer.created ---- {}", queue);
 
 					let tail = queue.len().saturating_sub(6);
 					let key = queue[tail..].to_string();
@@ -183,7 +187,7 @@ fn rabbit_consumer_monitor(
 				};
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-                    info!("consumer.deleted ---- {}", queue);
+					info!("consumer.deleted ---- {}", queue);
 
 					let tail = queue.len().saturating_sub(6);
 					let key = &queue[tail..];
