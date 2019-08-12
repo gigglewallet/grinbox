@@ -88,10 +88,6 @@ fn initial_consumers(login: String, password: String) -> HashMap<String, Vec<Str
 	map
 }
 
-fn string_to_static_str(s: String) -> &'static str {
-	Box::leak(s.into_boxed_str())
-}
-
 fn rabbit_consumer_monitor(
 	consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 	login: String,
@@ -124,34 +120,31 @@ fn rabbit_consumer_monitor(
 			.expect("Error opening channel 1");
 		info!("Opened channel: {:?}", channel.id);
 
-		let id = Uuid::new_v4().to_string();
-		let grinrelay_host = std::env::var("GRINRELAY_HOST").unwrap_or(id);
-		let queue_name: &'static str =
-			string_to_static_str(format!("{}-consumer-notification", grinrelay_host).to_string());
+		let queue_name = format!("{}-{}-consumer-notify", gethostname::gethostname().into_string().unwrap(), Uuid::new_v4());
 		let mut args = Table::new();
 		args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
 		let queue_declare =
-			channel.queue_declare(queue_name, false, true, false, false, false, args);
+			channel.queue_declare(queue_name.clone(), false, true, false, false, false, args);
 
 		if queue_declare.is_err() {
-			error!("grin relay consumer queue declared failure!");
+			error!("grin relay consumer queue failed to declare!");
 			std::process::exit(1);
 		} else {
-			info!("Queue declare: {:?}", queue_declare);
+			info!("Queue declared: {:?}", queue_declare);
 		}
 
 		let bind_result = channel.queue_bind(
-			queue_name,
-			"amq.rabbitmq.event",
-			"consumer.*",
+			queue_name.clone(),
+			"amq.rabbitmq.event".to_owned(),
+			"consumer.*".to_owned(),
 			false,
 			Table::new(),
 		);
 		if bind_result.is_err() {
-			error!("grin relay consumer queue bind failure!");
+			error!("grin relay consumer queue failed to bind!");
 			std::process::exit(1);
 		} else {
-			info!("queue bind successfully!");
+			info!("queue bind successfully");
 		}
 
 		let closure_consumer = move |_chan: &mut Channel,
@@ -162,12 +155,12 @@ fn rabbit_consumer_monitor(
 				let header = headers.to_owned().headers.unwrap();
 				let queue = match header.get("queue").unwrap() {
 					TableEntry::LongString(val) => val.to_string(),
-					_ => queue_name.to_string(),
+					_ => String::new(),
 				};
 
-				info!("consumer.created ---- {}", queue);
-
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
+                    info!("consumer.created ---- {}", queue);
+
 					let tail = queue.len().saturating_sub(6);
 					let key = queue[tail..].to_string();
 					match consumers.lock().entry(key) {
@@ -186,12 +179,12 @@ fn rabbit_consumer_monitor(
 
 				let queue = match header.get("queue").unwrap() {
 					TableEntry::LongString(val) => val.to_string(),
-					_ => queue_name.to_string(),
+					_ => String::new(),
 				};
 
-				info!("consumer.deleted ---- {}", queue);
-
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
+                    info!("consumer.deleted ---- {}", queue);
+
 					let tail = queue.len().saturating_sub(6);
 					let key = &queue[tail..];
 					if consumers.lock().contains_key(key) {
@@ -203,7 +196,7 @@ fn rabbit_consumer_monitor(
 		let consumer_name = channel.basic_consume(
 			closure_consumer,
 			queue_name,
-			"",
+			"".to_owned(),
 			false,
 			true,
 			false,
