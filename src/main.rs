@@ -126,7 +126,8 @@ fn rabbit_consumer_monitor(
 
 		let id = Uuid::new_v4().to_string();
 		let grinrelay_host = std::env::var("GRINRELAY_HOST").unwrap_or(id);
-		let queue_name: &'static str = string_to_static_str(format!("{}-consumer-notification", grinrelay_host).to_string());
+		let queue_name: &'static str =
+			string_to_static_str(format!("{}-consumer-notification", grinrelay_host).to_string());
 		let mut args = Table::new();
 		args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
 		let queue_declare =
