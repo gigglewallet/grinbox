@@ -93,121 +93,122 @@ fn rabbit_consumer_monitor(
 	login: String,
 	password: String,
 ) {
-	thread::spawn(|| {
-		let map = initial_consumers(login.clone(), password.clone());
-		for (key, value) in map.to_owned() {
-			consumers.lock().insert(key, value);
-		}
+	let map = initial_consumers(login.clone(), password.clone());
+	for (key, value) in map.to_owned() {
+		consumers.lock().insert(key, value);
+	}
 
-		info!("rabbit_consumer_monitor start");
-		let options = Options {
-			host: "127.0.0.1".to_string(),
-			port: 5672,
-			vhost: "/".to_string(),
-			login,
-			password,
-			frame_max_limit: 131072,
-			channel_max_limit: 65535,
-			locale: "en_US".to_string(),
-			scheme: AMQPScheme::AMQP,
-			properties: Table::new(),
-		};
+	info!("rabbit_consumer_monitor start");
+	let options = Options {
+		host: "127.0.0.1".to_string(),
+		port: 5672,
+		vhost: "/".to_string(),
+		login,
+		password,
+		frame_max_limit: 131072,
+		channel_max_limit: 65535,
+		locale: "en_US".to_string(),
+		scheme: AMQPScheme::AMQP,
+		properties: Table::new(),
+	};
 
-		let mut session = Session::new(options).ok().expect("Can't create session");
-		let mut channel = session
-			.open_channel(1)
-			.ok()
-			.expect("Error opening channel 1");
-		info!("Opened channel: {:?}", channel.id);
+	let mut session = Session::new(options).ok().expect("Can't create session");
+	let mut channel = session
+		.open_channel(1)
+		.ok()
+		.expect("Error opening channel 1");
+	info!("Opened channel: {:?}", channel.id);
 
-		let queue_name = format!(
-			"{}-{}-consumer-notify",
-			gethostname::gethostname().into_string().unwrap(),
-			Uuid::new_v4()
-		);
-		let mut args = Table::new();
-		args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
-		let queue_declare =
-			channel.queue_declare(queue_name.clone(), false, true, false, false, false, args);
+	let queue_name = format!(
+		"{}-{}-consumer-notify",
+		gethostname::gethostname().into_string().unwrap(),
+		Uuid::new_v4()
+	);
+	let mut args = Table::new();
+	args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
+	let queue_declare =
+		channel.queue_declare(queue_name.clone(), false, false, false, false, false, args);
 
-		if queue_declare.is_err() {
-			error!("grin relay consumer queue failed to declare!");
-			std::process::exit(1);
-		} else {
-			info!("Queue declared: {:?}", queue_declare);
-		}
+	if queue_declare.is_err() {
+		error!("grin relay consumer queue failed to declare!");
+		std::process::exit(1);
+	} else {
+		info!("Queue declared: {:?}", queue_declare.unwrap());
+	}
 
-		let bind_result = channel.queue_bind(
-			queue_name.clone(),
-			"amq.rabbitmq.event".to_owned(),
-			"consumer.*".to_owned(),
-			false,
-			Table::new(),
-		);
-		if bind_result.is_err() {
-			error!("grin relay consumer queue failed to bind!");
-			std::process::exit(1);
-		} else {
-			info!("queue bind successfully");
-		}
+	let bind_result = channel.queue_bind(
+		queue_name.clone(),
+		"amq.rabbitmq.event".to_owned(),
+		"consumer.*".to_owned(),
+		false,
+		Table::new(),
+	);
+	if bind_result.is_err() {
+		error!("grin relay consumer queue failed to bind!");
+		std::process::exit(1);
+	} else {
+		info!("queue bind successfully");
+	}
 
-		let closure_consumer = move |_chan: &mut Channel,
-		                             deliver: basic::Deliver,
-		                             headers: basic::BasicProperties,
-		                             _data: Vec<u8>| {
-			if deliver.routing_key == "consumer.created" {
-				let header = headers.to_owned().headers.unwrap();
-				let queue = match header.get("queue").unwrap() {
-					TableEntry::LongString(val) => val.to_string(),
-					_ => String::new(),
-				};
+	let closure_consumer = move |_chan: &mut Channel,
+								 deliver: basic::Deliver,
+								 headers: basic::BasicProperties,
+								 _data: Vec<u8>| {
+		if deliver.routing_key == "consumer.created" {
+			let header = headers.to_owned().headers.unwrap();
+			let queue = match header.get("queue").unwrap() {
+				TableEntry::LongString(val) => val.to_string(),
+				_ => String::new(),
+			};
 
-				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					info!("consumer.created ---- {}", queue);
+			if queue.starts_with("gn1") || queue.starts_with("tn1") {
+				info!("consumer.created ---- {}", queue);
 
-					let tail = queue.len().saturating_sub(6);
-					let key = queue[tail..].to_string();
-					match consumers.lock().entry(key) {
-						Entry::Vacant(e) => {
-							e.insert(vec![queue]);
-						}
-						Entry::Occupied(mut e) => {
-							e.get_mut().push(queue);
-						}
+				let tail = queue.len().saturating_sub(6);
+				let key = queue[tail..].to_string();
+				match consumers.lock().entry(key) {
+					Entry::Vacant(e) => {
+						e.insert(vec![queue]);
+					}
+					Entry::Occupied(mut e) => {
+						e.get_mut().push(queue);
 					}
 				}
 			}
+		}
 
-			if deliver.routing_key == "consumer.deleted" {
-				let header = headers.to_owned().headers.unwrap();
+		if deliver.routing_key == "consumer.deleted" {
+			let header = headers.to_owned().headers.unwrap();
 
-				let queue = match header.get("queue").unwrap() {
-					TableEntry::LongString(val) => val.to_string(),
-					_ => String::new(),
-				};
+			let queue = match header.get("queue").unwrap() {
+				TableEntry::LongString(val) => val.to_string(),
+				_ => String::new(),
+			};
 
-				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					info!("consumer.deleted ---- {}", queue);
+			if queue.starts_with("gn1") || queue.starts_with("tn1") {
+				info!("consumer.deleted ---- {}", queue);
 
-					let tail = queue.len().saturating_sub(6);
-					let key = &queue[tail..];
-					if consumers.lock().contains_key(key) {
-						consumers.lock().remove(key);
-					}
+				let tail = queue.len().saturating_sub(6);
+				let key = &queue[tail..];
+				if consumers.lock().contains_key(key) {
+					consumers.lock().remove(key);
 				}
 			}
-		};
-		let consumer_name = channel.basic_consume(
-			closure_consumer,
-			queue_name,
-			"".to_owned(),
-			false,
-			true,
-			false,
-			false,
-			Table::new(),
-		);
-		info!("Starting consumer {:?}", consumer_name);
+		}
+	};
+	let consumer_name = channel.basic_consume(
+		closure_consumer,
+		queue_name,
+		"".to_owned(),
+		false,
+		true,
+		false,
+		false,
+		Table::new(),
+	);
+	info!("Starting consumer {:?}", consumer_name);
+
+	thread::spawn(move || {
 
 		channel.start_consuming();
 
