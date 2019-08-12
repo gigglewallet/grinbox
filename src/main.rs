@@ -151,9 +151,9 @@ fn rabbit_consumer_monitor(
 	}
 
 	let closure_consumer = move |_chan: &mut Channel,
-								 deliver: basic::Deliver,
-								 headers: basic::BasicProperties,
-								 _data: Vec<u8>| {
+	                             deliver: basic::Deliver,
+	                             headers: basic::BasicProperties,
+	                             _data: Vec<u8>| {
 		if deliver.routing_key == "consumer.created" {
 			let header = headers.to_owned().headers.unwrap();
 			let queue = match header.get("queue").unwrap() {
@@ -209,7 +209,6 @@ fn rabbit_consumer_monitor(
 	info!("Starting consumer {:?}", consumer_name);
 
 	thread::spawn(move || {
-
 		channel.start_consuming();
 
 		channel.close(200, "Bye").unwrap();
