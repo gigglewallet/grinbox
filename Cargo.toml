@@ -1,6 +1,6 @@
 [package]
 name = "grinrelay"
-version = "1.0.5"
+version = "1.0.6"
 authors = ["vault713 devs and giggle devs"]
 build = "src/build/build.rs"
 edition = "2018"
