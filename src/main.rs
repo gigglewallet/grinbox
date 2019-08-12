@@ -17,7 +17,6 @@ use std::default::Default;
 use std::net::{TcpListener, ToSocketAddrs};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
 
 use std::fs::File;
 use std::io::Read;
@@ -29,13 +28,14 @@ use openssl::x509::X509;
 
 use amqp::protocol::basic;
 use amqp::AMQPScheme;
-use amqp::TableEntry::LongString;
+use amqp::TableEntry;
 use amqp::{Basic, Channel, Options, Session, Table};
 
 extern crate serde_derive;
 extern crate serde_json;
 
 use serde_json::Value;
+use uuid::Uuid;
 
 fn read_file(name: &str) -> std::io::Result<Vec<u8>> {
 	let mut file = File::open(name)?;
@@ -88,18 +88,16 @@ fn initial_consumers(login: String, password: String) -> HashMap<String, Vec<Str
 	map
 }
 
+fn string_to_static_str(s: String) -> &'static str {
+	Box::leak(s.into_boxed_str())
+}
+
 fn rabbit_consumer_monitor(
 	consumers: Arc<Mutex<HashMap<String, Vec<String>>>>,
 	login: String,
 	password: String,
 ) {
 	thread::spawn(|| {
-		// todo: fix me.
-		// note: in case of the restarting of this relay server process, we have to wait for
-		// a few seconds for re-connecting between wallets and relay server. otherwise the consumers
-		// list will miss them.
-		thread::sleep(Duration::from_secs(10));
-
 		let map = initial_consumers(login.clone(), password.clone());
 		for (key, value) in map.to_owned() {
 			consumers.lock().insert(key, value);
@@ -126,13 +124,17 @@ fn rabbit_consumer_monitor(
 			.expect("Error opening channel 1");
 		info!("Opened channel: {:?}", channel.id);
 
-		let queue_name = "grin_relay_consumer_notification_queue";
+		let id = Uuid::new_v4().to_string();
+		let grinrelay_host = std::env::var("GRINRELAY_HOST").unwrap_or(id);
+		let queue_name: &'static str = string_to_static_str(format!("{}-consumer-notification", grinrelay_host).to_string());
+		let mut args = Table::new();
+		args.insert("x-expires".to_owned(), TableEntry::LongUint(86400000u32));
 		let queue_declare =
-			channel.queue_declare(queue_name, false, true, false, false, false, Table::new());
+			channel.queue_declare(queue_name, false, true, false, false, false, args);
 
 		if queue_declare.is_err() {
 			error!("grin relay consumer queue declared failure!");
-			std::process::exit(0);
+			std::process::exit(1);
 		} else {
 			info!("Queue declare: {:?}", queue_declare);
 		}
@@ -146,7 +148,7 @@ fn rabbit_consumer_monitor(
 		);
 		if bind_result.is_err() {
 			error!("grin relay consumer queue bind failure!");
-			std::process::exit(0);
+			std::process::exit(1);
 		} else {
 			info!("queue bind successfully!");
 		}
@@ -158,15 +160,15 @@ fn rabbit_consumer_monitor(
 			if deliver.routing_key == "consumer.created" {
 				let header = headers.to_owned().headers.unwrap();
 				let queue = match header.get("queue").unwrap() {
-					LongString(val) => val.to_string(),
+					TableEntry::LongString(val) => val.to_string(),
 					_ => queue_name.to_string(),
 				};
 
 				info!("consumer.created ---- {}", queue);
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					let len = queue.len();
-					let key = queue.clone()[len - 6..].to_owned();
+					let tail = queue.len().saturating_sub(6);
+					let key = queue[tail..].to_string();
 					match consumers.lock().entry(key) {
 						Entry::Vacant(e) => {
 							e.insert(vec![queue]);
@@ -182,17 +184,17 @@ fn rabbit_consumer_monitor(
 				let header = headers.to_owned().headers.unwrap();
 
 				let queue = match header.get("queue").unwrap() {
-					LongString(val) => val.to_string(),
+					TableEntry::LongString(val) => val.to_string(),
 					_ => queue_name.to_string(),
 				};
 
 				info!("consumer.deleted ---- {}", queue);
 
 				if queue.starts_with("gn1") || queue.starts_with("tn1") {
-					let len = queue.len();
-					let key = queue.clone()[len - 6..].to_owned();
-					if consumers.lock().contains_key(&key) {
-						consumers.lock().remove(&key);
+					let tail = queue.len().saturating_sub(6);
+					let key = &queue[tail..];
+					if consumers.lock().contains_key(key) {
+						consumers.lock().remove(key);
 					}
 				}
 			}
@@ -202,7 +204,7 @@ fn rabbit_consumer_monitor(
 			queue_name,
 			"",
 			false,
-			false,
+			true,
 			false,
 			false,
 			Table::new(),
