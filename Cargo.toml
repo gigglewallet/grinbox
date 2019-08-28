@@ -1,12 +1,13 @@
 [package]
 name = "grinrelay"
 version = "1.0.6"
-authors = ["vault713 devs and giggle devs"]
+authors = ["Gotts Developers <gotts.tech@lists.launchpad.net>"]
 build = "src/build/build.rs"
 edition = "2018"
 description = "A slate relay service for Grin."
-keywords = [ "grin", "mimblewimble", "rust", "crypto", "cryptocurrency", "giggle", "grinrelay" ]
+keywords = [ "grinrelay", "grinwallet", "grin", "mimblewimble", "rust", "crypto", "cryptocurrency"]
 license = "Apache-2.0"
+repository = "https://github.com/gottstech/grinrelay"
 readme = "README.md"
 
 [dependencies]
