@@ -1,10 +1,10 @@
-[![Build Status](https://img.shields.io/travis/gigglewallet/grinrelay/master.svg)](https://travis-ci.org/gigglewallet/grinrelay)
+[![Build Status](https://img.shields.io/travis/gottstech/grinrelay/master.svg)](https://travis-ci.org/gottstech/grinrelay)
 
-# Grin Relay Service of Giggle Wallet
+# Transaction Relay Service of Grin Wallet
 
 ## Bech32 address
 
-https://github.com/gigglewallet/grinrelay/wiki/Bech32-Grin-Relay-Address
+https://github.com/gottstech/grinrelay/wiki/Bech32-Grin-Relay-Address
 
 ## Privacy considerations
 
@@ -14,13 +14,13 @@ https://github.com/gigglewallet/grinrelay/wiki/Bech32-Grin-Relay-Address
 
 ## Documents
 
-https://github.com/gigglewallet/grinrelay/wiki
+https://github.com/gottstech/grinrelay/wiki
 
 ## Credits
 
 The code is based on the [Vault713 Grinbox](https://github.com/vault713/grinbox) but the main difference between them is:
 - Grinbox use Base58 address format
-- GrinRelay use Base32/Bech32 address format which has 4 main benefits than Base58. Please detail info [here](https://github.com/gigglewallet/grinrelay/wiki/Bech32-Grin-Relay-Address).
+- GrinRelay use Base32/Bech32 address format which has 4 main benefits than Base58. Please detail info [here](https://github.com/gottstech/grinrelay/wiki/Bech32-Grin-Relay-Address).
 
 The related code taken with thanks and respect, with license details in all derived source files.
 
