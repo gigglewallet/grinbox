@@ -86,6 +86,8 @@ fn initial_consumers(login: String, password: String) -> HashMap<String, Vec<Str
 				}
 				Entry::Occupied(mut e) => {
 					e.get_mut().push(str_name);
+					e.get_mut().sort_unstable();
+					e.get_mut().dedup();
 				}
 			}
 		}
@@ -187,6 +189,8 @@ fn rabbit_consumer_monitor(
 					}
 					Entry::Occupied(mut e) => {
 						e.get_mut().push(queue);
+						e.get_mut().sort_unstable();
+						e.get_mut().dedup();
 					}
 				}
 			}
